@@ -1,0 +1,35 @@
+services:
+  frontend:
+    build: ./frontend
+    ports: ["5173:5173"]
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+    depends_on: [backend]
+
+  backend:
+    build: ./backend
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://camera:camera@postgres:5432/camera_dashboard
+      CORS_ORIGINS: http://localhost:5173
+      STORAGE_BACKEND: ftp
+      FTP_HOST: ftp-server
+      FTP_USER: camera
+      FTP_PASSWORD: change-me
+    depends_on: [postgres]
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: camera
+      POSTGRES_PASSWORD: camera
+      POSTGRES_DB: camera_dashboard
+    volumes: [camera_db:/var/lib/postgresql/data]
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    ports: ["8888:8888", "8889:8889"]
+    volumes: ["./mediamtx.yml:/mediamtx.yml:ro"]
+
+volumes:
+  camera_db:

@@ -1,0 +1,10 @@
+logLevel: info
+webrtc: yes
+webrtcAddress: :8889
+hls: yes
+hlsAddress: :8888
+paths:
+  cam01:
+    source: rtsp://user:password@192.168.1.101/Streaming/Channels/102
+  cam02:
+    source: rtsp://user:password@192.168.1.102/Streaming/Channels/102

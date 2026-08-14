@@ -1,0 +1,6 @@
+from typing import Protocol
+from .camera import Camera
+
+class CameraRepository(Protocol):
+    async def list(self) -> list[Camera]: ...
+    async def get(self, camera_id: int) -> Camera | None: ...
