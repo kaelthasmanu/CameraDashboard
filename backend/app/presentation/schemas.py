@@ -8,6 +8,7 @@ class CameraResponse(BaseModel):
     name: str
     location: str
     model: str
+    stream_url: str
     status: CameraStatus
     enabled: bool
     last_seen: datetime | None

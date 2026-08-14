@@ -1,13 +1,13 @@
 from datetime import datetime, timezone
+import os
 from ..domain.camera import Camera, CameraStatus
 
 class InMemoryCameraRepository:
     def __init__(self):
+        media_base_url = os.getenv("MEDIAMTX_PUBLIC_URL", "http://localhost:8888").rstrip("/")
         self._cameras = [
-            Camera(1, "Entrada principal", "Acceso norte", "Hikvision DS-2CD", "https://demo.invalid/cam-1", CameraStatus.ONLINE, last_seen=datetime.now(timezone.utc)),
-            Camera(2, "Almacén", "Nave logística", "Hikvision DS-2CD", "https://demo.invalid/cam-2", CameraStatus.ONLINE, last_seen=datetime.now(timezone.utc)),
-            Camera(3, "Parking", "Exterior", "Hikvision DS-2CD", "https://demo.invalid/cam-3", CameraStatus.OFFLINE),
-            Camera(4, "Recepción", "Edificio central", "Hikvision DS-2CD", "https://demo.invalid/cam-4", CameraStatus.ONLINE, last_seen=datetime.now(timezone.utc)),
+            Camera(1, "Cámara 01", "RTSP / cam01", "Hikvision", f"{media_base_url}/cam01/index.m3u8", CameraStatus.ONLINE, last_seen=datetime.now(timezone.utc)),
+            Camera(2, "Cámara 02", "RTSP / cam02", "Hikvision", f"{media_base_url}/cam02/index.m3u8", CameraStatus.ONLINE, last_seen=datetime.now(timezone.utc)),
         ]
 
     async def list(self):
