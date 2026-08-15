@@ -16,6 +16,16 @@ class CameraResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
 
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    is_active: bool
+    is_admin: bool
+
 class RecordingResponse(BaseModel):
     id: int
     camera_id: int
