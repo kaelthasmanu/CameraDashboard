@@ -22,8 +22,19 @@ services:
     volumes: [camera_db:/var/lib/postgresql/data]
 
   mediamtx:
-    image: bluenviron/mediamtx:latest
-    ports: ["8888:8888", "8889:8889"]
+    # Pin the server version: a moving `latest` tag can change the streaming
+    # configuration at the next deploy.
+    image: bluenviron/mediamtx:1.20.0
+    ports:
+      - "8888:8888"
+      - "8889:8889"
+      # WebRTC media transport. UDP is preferred; TCP is a firewall fallback.
+      - "8189:8189/udp"
+      - "8189:8189/tcp"
+    environment:
+      # Comma-separated public/LAN IPs or DNS names that browsers can reach.
+      # localhost works from this machine; override it for another LAN device.
+      MTX_WEBRTCADDITIONALHOSTS: ${MEDIAMTX_WEBRTC_ADDITIONAL_HOSTS:-localhost}
     volumes: ["./mediamtx.yml:/mediamtx.yml:ro"]
 
 volumes:
