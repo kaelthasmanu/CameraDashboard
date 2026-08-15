@@ -1,16 +1,16 @@
 from datetime import datetime, timezone
-import os
 from pathlib import Path
 from urllib.parse import urlparse
 import yaml
 from ..domain.camera import Camera, CameraStatus
+from .settings import settings
 
 class InMemoryCameraRepository:
     def __init__(self):
         self._cameras = self._load_from_mediamtx()
 
     def _load_from_mediamtx(self) -> list[Camera]:
-        config_path = Path(os.getenv("MEDIAMTX_CONFIG_PATH", "/app/mediamtx.yml"))
+        config_path = Path(settings.mediamtx_config_path)
         if not config_path.exists():
             # Permite ejecutar pytest/uvicorn desde el checkout local.
             config_path = Path(__file__).resolve().parents[3] / "mediamtx.yml"
@@ -23,7 +23,7 @@ class InMemoryCameraRepository:
         if not isinstance(paths, dict):
             raise ValueError("mediamtx.yml: 'paths' must be a mapping")
 
-        webrtc_base_url = os.getenv("MEDIAMTX_WEBRTC_PUBLIC_URL", "http://localhost:8889").rstrip("/")
+        webrtc_base_url = settings.mediamtx_webrtc_public_url.rstrip("/")
         cameras: list[Camera] = []
         now = datetime.now(timezone.utc)
         for camera_id, (path_name, path_config) in enumerate(paths.items(), start=1):
@@ -37,6 +37,7 @@ class InMemoryCameraRepository:
                 name=str(path_name),
                 location=f"MediaMTX / {path_name}",
                 model=model,
+                # MediaMTX expone WHEP en /<path>/whep; <path> es la clave del YAML.
                 stream_url=f"{webrtc_base_url}/{path_name}/whep",
                 status=CameraStatus.ONLINE,
                 last_seen=now,
