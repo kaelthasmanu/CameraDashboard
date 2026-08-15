@@ -1,4 +1,3 @@
-from logging.config import fileConfig
 from alembic import context
 from app.infrastructure.database import Base
 from app.infrastructure import db_models
@@ -6,7 +5,6 @@ from app.infrastructure.settings import settings
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url.replace("+asyncpg", "").replace("+aiosqlite", ""))
-if config.config_file_name: fileConfig(config.config_file_name)
 target_metadata = Base.metadata
 
 def run_migrations_online():
