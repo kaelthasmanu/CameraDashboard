@@ -5,13 +5,13 @@ from ..application.camera_service import CameraService
 from ..infrastructure.camera_repository import InMemoryCameraRepository
 from .schemas import CameraResponse
 from ..application.recording_service import RecordingService
-from ..infrastructure.recording_repository import InMemoryRecordingRepository
+from ..infrastructure.recording_repository import FtpRecordingRepository
 from .schemas import RecordingResponse
 from ..infrastructure.storage import FileStorage, StorageError
 
 router = APIRouter()
 repository = InMemoryCameraRepository()
-recording_repository = InMemoryRecordingRepository()
+recording_repository = FtpRecordingRepository()
 storage = FileStorage()
 
 def get_camera_service() -> CameraService:
