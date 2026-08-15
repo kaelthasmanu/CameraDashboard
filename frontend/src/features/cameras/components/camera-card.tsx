@@ -1,6 +1,39 @@
-import { useEffect, useRef, useState } from 'react';
-import { Camera as CameraIcon, MoreVertical, Play, WifiOff } from 'lucide-react';
+import { useRef } from 'react';
+import { Camera as CameraIcon, MoreVertical, Play, RotateCw, WifiOff } from 'lucide-react';
 import { formatDate } from '../../../shared/lib/formatters';
 import type { Camera } from '../../../shared/types/api';
-export function CameraCard({ camera, onSelect }: { camera: Camera; onSelect: (camera: Camera) => void }) { return <article className="camera-card" onClick={() => onSelect(camera)} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelect(camera); }}><div className="feed"><div className="feed-top"><span className={`status ${camera.status}`}>{camera.status === 'online' ? 'LIVE' : 'OFFLINE'}</span><span className="cam-id">CAM-{String(camera.id).padStart(2, '0')}</span></div>{camera.status === 'online' ? <CameraStream camera={camera} compact/> : <div className="offline"><WifiOff size={30}/><span>Cámara desconectada</span><small>{camera.last_seen ? `Última conexión: ${formatDate(camera.last_seen)}` : 'Sin conexión registrada'}</small></div>}<button className="expand" aria-label="Abrir cámara" onClick={event => { event.stopPropagation(); onSelect(camera); }}><Play size={14}/></button></div><div className="card-info"><div><h3>{camera.name}</h3><p>{camera.location}</p></div><MoreVertical size={17} className="more"/></div></article>; }
-export function CameraStream({ camera, compact = false }: { camera: Camera; compact?: boolean }) { const videoRef = useRef<HTMLVideoElement>(null); const [state, setState] = useState<'loading'|'ready'|'error'>('loading'); useEffect(() => { const video = videoRef.current; if (!video || camera.status !== 'online') return; let peer: RTCPeerConnection | undefined; let cancelled = false; const connect = async () => { try { peer = new RTCPeerConnection(); peer.addTransceiver('video', { direction: 'recvonly' }); peer.ontrack = event => { if (!cancelled && event.streams[0]) { video.srcObject = event.streams[0]; setState('ready'); video.play().catch(() => undefined); } }; peer.onconnectionstatechange = () => { if (peer?.connectionState === 'failed' || peer?.connectionState === 'disconnected') setState('error'); }; const offer = await peer.createOffer(); await peer.setLocalDescription(offer); await new Promise<void>(resolve => { if (peer?.iceGatheringState === 'complete') resolve(); else peer?.addEventListener('icegatheringstatechange', () => { if (peer?.iceGatheringState === 'complete') resolve(); }); }); const response = await fetch(camera.stream_url, { method: 'POST', headers: { 'Content-Type': 'application/sdp', Accept: 'application/sdp' }, body: peer.localDescription?.sdp }); if (!response.ok) throw new Error(`WHEP ${response.status}`); const answer = await response.text(); if (!cancelled) await peer.setRemoteDescription({ type: 'answer', sdp: answer }); } catch { if (!cancelled) setState('error'); } }; connect(); return () => { cancelled = true; peer?.close(); video.srcObject = null; }; }, [camera]); return <div className={`scene ${compact ? 'compact' : ''}`}><video ref={videoRef} className="live-video" autoPlay muted playsInline controls={!compact}/>{state === 'loading' && <div className="stream-message"><CameraIcon size={34}/><span>Conectando por WebRTC…</span></div>}{state === 'error' && <div className="stream-message error"><WifiOff size={30}/><span>WebRTC no disponible</span><small>{camera.stream_url}</small></div>}</div>; }
+import { useWhepStream } from '../hooks/use-whep-stream';
+
+export function CameraCard({ camera, onSelect, streamActive = true }: { camera: Camera; onSelect: (camera: Camera) => void; streamActive?: boolean }) {
+  return <article className="camera-card" onClick={() => onSelect(camera)} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelect(camera); }}>
+    <div className="feed">
+      <div className="feed-top"><span className={`status ${camera.status}`}>{camera.status === 'online' ? 'LIVE' : 'OFFLINE'}</span><span className="cam-id">CAM-{String(camera.id).padStart(2, '0')}</span></div>
+      {camera.status === 'online' && camera.enabled ? <CameraStream camera={camera} compact active={streamActive}/> : <div className="offline"><WifiOff size={30}/><span>Cámara desconectada</span><small>{camera.last_seen ? `Última conexión: ${formatDate(camera.last_seen)}` : 'Sin conexión registrada'}</small></div>}
+      <button className="expand" aria-label="Abrir cámara" onClick={event => { event.stopPropagation(); onSelect(camera); }}><Play size={14}/></button>
+    </div>
+    <div className="card-info"><div><h3>{camera.name}</h3><p>{camera.location}</p></div><MoreVertical size={17} className="more"/></div>
+  </article>;
+}
+
+export function CameraStream({ camera, compact = false, active = true }: { camera: Camera; compact?: boolean; active?: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  // El preview es H.264 de bajo bitrate; también se prefiere en el modal para
+  // evitar que un stream principal HEVC no compatible con el navegador congele la imagen.
+  const streamUrl = camera.preview_url ?? camera.stream_url;
+  const enabled = active && camera.status === 'online' && camera.enabled;
+  const { reconnect, state } = useWhepStream({ enabled, streamUrl, videoRef });
+
+  const retry = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    reconnect();
+  };
+
+  return <div className={`scene ${compact ? 'compact' : ''}`}>
+    <video ref={videoRef} className="live-video" autoPlay muted playsInline controls={!compact} onError={reconnect}/>
+    {!active && <div className="stream-message paused"><CameraIcon size={30}/><span>Abierta en vista ampliada</span></div>}
+    {active && !enabled && <div className="stream-message error"><WifiOff size={30}/><span>Cámara no disponible</span></div>}
+    {enabled && state === 'connecting' && <div className="stream-message"><CameraIcon size={34}/><span>Conectando al directo…</span></div>}
+    {enabled && state === 'reconnecting' && <div className="stream-message reconnecting"><RotateCw size={30} className="spin"/><span>Reconectando la señal…</span><button className="stream-retry" type="button" onClick={retry}>Reintentar ahora</button></div>}
+    {enabled && state === 'unsupported' && <div className="stream-message error"><WifiOff size={30}/><span>Este navegador no admite WebRTC</span><button className="stream-retry" type="button" onClick={retry}>Reintentar</button></div>}
+  </div>;
+}
