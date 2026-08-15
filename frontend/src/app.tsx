@@ -45,7 +45,9 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
     <main className="app-main">
       <PageHeader view={view} query={query} onQueryChange={setQuery} onRefresh={reload} onMenu={() => setMobileOpen(value => !value)} user={user}/>
       {error && <div className="alert"><WifiOff size={17}/><span>{error}</span><button onClick={reload}>Reintentar</button></div>}
-      {(view === 'overview' || view === 'live') && <DashboardPage cameras={cameras.cameras} recordings={recordings.recordings} query={query} day={day} loading={cameras.loading} onDayChange={setDay} onRecordings={() => navigate('recordings')} onCameraSelect={setSelectedCamera}/>} 
+      {(view === 'overview' || view === 'live') && (
+        <DashboardPage cameras={cameras.cameras} recordings={recordings.recordings} query={query} day={day} loading={cameras.loading} onDayChange={setDay} onRecordings={() => navigate('recordings')} onCameraSelect={setSelectedCamera} selectedCameraId={selectedCamera?.id}/>
+      )}
       {view === 'recordings' && <section className="panel recordings-panel"><div className="toolbar"><div><p className="eyebrow">Archivo de vídeo</p><h2>Grabaciones disponibles</h2><p>Explora y reproduce eventos almacenados de forma segura.</p></div><label className="date"><span>Fecha</span><input type="date" value={day} onChange={event => setDay(event.target.value)}/></label></div>{recordings.loading ? <div className="empty">Cargando grabaciones…</div> : <RecordingList recordings={recordings.recordings} cameras={cameras.cameras} onPlay={setPlaying}/>}</section>}
       {view === 'activity' && <ActivityPage cameras={cameras.cameras}/>} 
       {view === 'settings' && <SettingsPage user={user?.username ?? 'Usuario'} onLogout={onLogout}/>} 
