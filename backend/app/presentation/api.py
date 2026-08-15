@@ -8,6 +8,8 @@ from ..application.recording_service import RecordingService
 from ..infrastructure.recording_repository import FtpRecordingRepository
 from .schemas import RecordingResponse
 from ..infrastructure.storage import FileStorage, StorageError
+from ..infrastructure.security import get_current_user
+from ..infrastructure.db_models import UserModel
 
 router = APIRouter()
 repository = InMemoryCameraRepository()
@@ -21,29 +23,29 @@ def get_recording_service() -> RecordingService:
     return RecordingService(recording_repository)
 
 @router.get("/cameras", response_model=list[CameraResponse])
-async def list_cameras(service: CameraService = Depends(get_camera_service)):
+async def list_cameras(service: CameraService = Depends(get_camera_service), _: UserModel = Depends(get_current_user)):
     return await service.list_cameras()
 
 @router.get("/cameras/{camera_id}", response_model=CameraResponse)
-async def get_camera(camera_id: int, service: CameraService = Depends(get_camera_service)):
+async def get_camera(camera_id: int, service: CameraService = Depends(get_camera_service), _: UserModel = Depends(get_current_user)):
     camera = await service.get_camera(camera_id)
     if camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     return camera
 
 @router.get("/recordings", response_model=list[RecordingResponse])
-async def list_recordings(camera_id: int | None = None, day: date | None = None, service: RecordingService = Depends(get_recording_service)):
+async def list_recordings(camera_id: int | None = None, day: date | None = None, service: RecordingService = Depends(get_recording_service), _: UserModel = Depends(get_current_user)):
     return await service.search(camera_id, day)
 
 @router.get("/recordings/{recording_id}", response_model=RecordingResponse)
-async def get_recording(recording_id: int, service: RecordingService = Depends(get_recording_service)):
+async def get_recording(recording_id: int, service: RecordingService = Depends(get_recording_service), _: UserModel = Depends(get_current_user)):
     recording = await service.get(recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
     return recording
 
 @router.get("/recordings/{recording_id}/stream")
-async def stream_recording(recording_id: int, request: Request, service: RecordingService = Depends(get_recording_service)):
+async def stream_recording(recording_id: int, request: Request, service: RecordingService = Depends(get_recording_service), _: UserModel = Depends(get_current_user)):
     recording = await service.get(recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
