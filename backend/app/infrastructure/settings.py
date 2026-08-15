@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     ftp_password: str = ""
     ftp_anonymous: bool = False
     ftp_root: str = "/"
+    ftp_recording_duration_seconds: int = 1800
+    ftp_camera_prefixes: str = ""
     mediamtx_config_path: str = "/app/mediamtx.yml"
     mediamtx_webrtc_public_url: str = "http://localhost:8889"
     frontend_api_url: str = "http://localhost:8000/api/v1"
