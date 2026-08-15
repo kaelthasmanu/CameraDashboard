@@ -17,3 +17,6 @@ class Camera:
     status: CameraStatus = CameraStatus.UNKNOWN
     enabled: bool = True
     last_seen: datetime | None = None
+    # A lower-bitrate feed intended for multi-camera grids.  ``None`` keeps
+    # older MediaMTX configurations compatible: consumers can use stream_url.
+    preview_url: str | None = None
