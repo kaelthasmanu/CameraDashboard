@@ -13,6 +13,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://camera:camera@postgres:5432/camera_dashboard
       CORS_ORIGINS: http://localhost:5173
       STORAGE_BACKEND: ftp
+      MEDIAMTX_PUBLIC_URL: http://localhost:8888
       FTP_HOST: ftp-server
       FTP_USER: camera
       FTP_PASSWORD: change-me
