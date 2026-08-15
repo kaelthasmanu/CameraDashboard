@@ -5,6 +5,10 @@ import yaml
 from ..domain.camera import Camera, CameraStatus
 from .settings import settings
 
+
+PREVIEW_PATH_SUFFIX = "_preview"
+
+
 class InMemoryCameraRepository:
     def __init__(self):
         self._cameras = self._load_from_mediamtx()
@@ -26,14 +30,23 @@ class InMemoryCameraRepository:
         webrtc_base_url = settings.mediamtx_webrtc_public_url.rstrip("/")
         cameras: list[Camera] = []
         now = datetime.now(timezone.utc)
-        for camera_id, (path_name, path_config) in enumerate(paths.items(), start=1):
+        for path_name, path_config in paths.items():
+            # Preview paths are paired with their main path below and must not
+            # appear as independent cameras in the dashboard.
+            if path_name.endswith(PREVIEW_PATH_SUFFIX):
+                continue
             if not isinstance(path_config, dict) or not path_config.get("source"):
                 continue
             source = str(path_config["source"])
             parsed_source = urlparse(source)
             model = parsed_source.hostname or parsed_source.scheme.upper() or "MediaMTX"
+            preview_path_name = f"{path_name}{PREVIEW_PATH_SUFFIX}"
+            preview_path_config = paths.get(preview_path_name)
+            preview_url = None
+            if isinstance(preview_path_config, dict) and preview_path_config.get("source"):
+                preview_url = f"{webrtc_base_url}/{preview_path_name}/whep"
             cameras.append(Camera(
-                id=camera_id,
+                id=len(cameras) + 1,
                 name=str(path_name),
                 location=f"MediaMTX / {path_name}",
                 model=model,
@@ -41,6 +54,7 @@ class InMemoryCameraRepository:
                 stream_url=f"{webrtc_base_url}/{path_name}/whep",
                 status=CameraStatus.ONLINE,
                 last_seen=now,
+                preview_url=preview_url,
             ))
         return cameras
 
