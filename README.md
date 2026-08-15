@@ -24,7 +24,7 @@ docker compose up -d --build backend
 
 Para un servidor FTP anónimo usa `STORAGE_BACKEND=ftp`, `FTP_ANONYMOUS=true`, `FTP_USER=anonymous` y un correo como `FTP_PASSWORD`. `FTP_ROOT` permite indicar el directorio raíz remoto.
 
-La segunda fase añade `GET /api/v1/recordings?camera_id=1&day=2026-08-14` y `GET /api/v1/recordings/{id}`. El repositorio actual es demo; el siguiente adaptador debe indexar FTP/SFTP en PostgreSQL y servir archivos mediante Range Requests.
+Las grabaciones FTP se indexan desde `FTP_ROOT/YYYY/MM/DD/*.mp4`; se reconocen nombres como `RLC-810A_00_20260814150544.mp4` y se sirven mediante Range Requests.
 
 La persistencia se migra con `cd backend && alembic upgrade head`. El endpoint `GET /api/v1/recordings/{id}/stream` acepta `Range: bytes=...` y soporta almacenamiento local, FTP o SFTP mediante `STORAGE_BACKEND=local|ftp|sftp`.
 
