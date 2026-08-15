@@ -1,21 +1,68 @@
-import { useState } from 'react';
-import { Check, WifiOff } from 'lucide-react';
-import { useCameras } from './features/cameras/hooks/use-cameras';
-import { useRecordings } from './features/recordings/hooks/use-recordings';
-import { RecordingList } from './features/recordings/components/recording-list';
-import { RecordingPlayer } from './features/recordings/components/recording-player';
-import { Sidebar, type View } from './features/layout/components/sidebar';
-import { PageHeader } from './features/layout/components/page-header';
-import { DashboardPage } from './pages/dashboard-page';
-import { CameraStream } from './features/cameras/components/camera-card';
-import { API_URL, api } from './shared/lib/api-client';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, CircleAlert, LogOut, WifiOff } from 'lucide-react';
 import { LoginPage } from './features/auth/components/login-page';
 import { useCurrentUser } from './features/auth/hooks/use-current-user';
+import { CameraStream } from './features/cameras/components/camera-card';
+import { useCameras } from './features/cameras/hooks/use-cameras';
+import { PageHeader } from './features/layout/components/page-header';
+import { Sidebar, type View } from './features/layout/components/sidebar';
+import { RecordingList } from './features/recordings/components/recording-list';
+import { RecordingPlayer } from './features/recordings/components/recording-player';
+import { useRecordings } from './features/recordings/hooks/use-recordings';
+import { DashboardPage } from './pages/dashboard-page';
+import { API_URL, api } from './shared/lib/api-client';
+import { formatDate } from './shared/lib/formatters';
 import type { Camera, Recording } from './shared/types/api';
+
 const initialDay = new Date().toISOString().slice(0, 10);
-export function App() { const [authenticated, setAuthenticated] = useState(Boolean(localStorage.getItem('access_token'))); return authenticated ? <AuthenticatedApp onLogout={() => { api.logout(); setAuthenticated(false); }}/> : <LoginPage onLogin={() => setAuthenticated(true)}/>; }
-function AuthenticatedApp({ onLogout }: { onLogout: () => void }) { const [view, setView] = useState<View>('overview'); const [day, setDay] = useState(initialDay); const [query, setQuery] = useState(''); const [mobileOpen, setMobileOpen] = useState(false); const [playing, setPlaying] = useState<Recording | null>(null); const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null); const { user } = useCurrentUser(); const cameras = useCameras(); const recordings = useRecordings(day); const error = cameras.error || recordings.error; const reload = () => { cameras.reload(); recordings.reload(); }; const navigate = (next: View) => { setView(next); setMobileOpen(false); };
- return <div className="shell"><Sidebar view={view} onNavigate={navigate} open={mobileOpen}/><main><PageHeader view={view} query={query} onQueryChange={setQuery} onRefresh={reload} onMenu={() => setMobileOpen(value => !value)}/>{error && <div className="alert"><WifiOff size={16}/>{error}<button onClick={reload}>Reintentar</button></div>}{(view === 'overview' || view === 'live') && <DashboardPage cameras={cameras.cameras} recordings={recordings.recordings} query={query} day={day} loading={cameras.loading} onDayChange={setDay} onRecordings={() => navigate('recordings')} onCameraSelect={setSelectedCamera}/>} {view === 'recordings' && <section className="panel"><div className="toolbar"><div><h2>Grabaciones</h2><p>Consulta y reproduce eventos archivados.</p></div><label className="date"><input type="date" value={day} onChange={event => setDay(event.target.value)}/></label></div>{recordings.loading ? <div className="empty">Cargando grabaciones…</div> : <RecordingList recordings={recordings.recordings} cameras={cameras.cameras} onPlay={setPlaying}/>}</section>} {view === 'activity' && <ActivityPage cameras={cameras.cameras}/>} {view === 'settings' && <SettingsPage/>}</main>{playing && <RecordingPlayer recording={playing} camera={cameras.cameras.find(camera => camera.id === playing.camera_id)} onClose={() => setPlaying(null)}/>} {selectedCamera && <CameraModal camera={selectedCamera} onClose={() => setSelectedCamera(null)}/>}</div>; }
-function ActivityPage({ cameras }: { cameras: Camera[] }) { return <section className="panel"><h2>Registro de actividad</h2><p className="muted">Estado actual de los dispositivos.</p><div className="activity-list">{cameras.map(camera => <div key={camera.id}><span className={`activity-dot ${camera.status}`}/><div><b>{camera.name} está {camera.status === 'online' ? 'en línea' : 'desconectada'}</b><small>{camera.last_seen ? new Date(camera.last_seen).toLocaleString('es-ES') : 'Sin actividad reciente'}</small></div></div>)}</div></section>; }
-function SettingsPage({ onLogout = () => undefined }: { onLogout?: () => void }) { return <section className="panel settings"><h2>Ajustes</h2><p className="muted">Configuración actual del panel.</p><label>URL de la API<input value={API_URL} readOnly/></label><div className="saved"><Check size={16}/> Backend conectado mediante API</div><button className="play" onClick={onLogout}>Cerrar sesión</button></section>; }
-function CameraModal({ camera, onClose }: { camera: Camera; onClose: () => void }) { return <div className="modal-backdrop" onClick={onClose}><div className="camera-modal" onClick={event => event.stopPropagation()}><button className="close" onClick={onClose} aria-label="Cerrar cámara">×</button><CameraStream camera={camera}/><div className="camera-modal-info"><h2>{camera.name}</h2><p>{camera.location} · {camera.model}</p><small>{camera.stream_url}</small></div></div></div>; }
+
+export function App() {
+  const [authenticated, setAuthenticated] = useState(Boolean(localStorage.getItem('access_token')));
+  const logout = () => { api.logout(); setAuthenticated(false); };
+  return authenticated ? <AuthenticatedApp onLogout={logout}/> : <LoginPage onLogin={() => setAuthenticated(true)}/>;
+}
+
+function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
+  const [view, setView] = useState<View>('overview');
+  const [day, setDay] = useState(initialDay);
+  const [query, setQuery] = useState('');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [playing, setPlaying] = useState<Recording | null>(null);
+  const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
+  const { user, loading: userLoading } = useCurrentUser();
+  const cameras = useCameras();
+  const recordings = useRecordings(day);
+
+  useEffect(() => { if (!userLoading && !user) onLogout(); }, [onLogout, user, userLoading]);
+
+  const error = cameras.error || recordings.error;
+  const reload = () => { cameras.reload(); recordings.reload(); };
+  const navigate = (next: View) => { setView(next); setMobileOpen(false); };
+
+  return <div className="app-shell">
+    <Sidebar view={view} onNavigate={navigate} open={mobileOpen} user={user} onLogout={onLogout}/>
+    {mobileOpen && <button className="sidebar-scrim" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú"/>}
+    <main className="app-main">
+      <PageHeader view={view} query={query} onQueryChange={setQuery} onRefresh={reload} onMenu={() => setMobileOpen(value => !value)} user={user}/>
+      {error && <div className="alert"><WifiOff size={17}/><span>{error}</span><button onClick={reload}>Reintentar</button></div>}
+      {(view === 'overview' || view === 'live') && <DashboardPage cameras={cameras.cameras} recordings={recordings.recordings} query={query} day={day} loading={cameras.loading} onDayChange={setDay} onRecordings={() => navigate('recordings')} onCameraSelect={setSelectedCamera}/>} 
+      {view === 'recordings' && <section className="panel recordings-panel"><div className="toolbar"><div><p className="eyebrow">Archivo de vídeo</p><h2>Grabaciones disponibles</h2><p>Explora y reproduce eventos almacenados de forma segura.</p></div><label className="date"><span>Fecha</span><input type="date" value={day} onChange={event => setDay(event.target.value)}/></label></div>{recordings.loading ? <div className="empty">Cargando grabaciones…</div> : <RecordingList recordings={recordings.recordings} cameras={cameras.cameras} onPlay={setPlaying}/>}</section>}
+      {view === 'activity' && <ActivityPage cameras={cameras.cameras}/>} 
+      {view === 'settings' && <SettingsPage user={user?.username ?? 'Usuario'} onLogout={onLogout}/>} 
+    </main>
+    {playing && <RecordingPlayer recording={playing} camera={cameras.cameras.find(camera => camera.id === playing.camera_id)} onClose={() => setPlaying(null)}/>} 
+    {selectedCamera && <CameraModal camera={selectedCamera} onClose={() => setSelectedCamera(null)}/>} 
+  </div>;
+}
+
+function ActivityPage({ cameras }: { cameras: Camera[] }) {
+  return <section className="panel activity-panel"><p className="eyebrow">Estado de infraestructura</p><h2>Actividad reciente</h2><p className="muted">Última información reportada por cada dispositivo.</p><div className="activity-list">{cameras.map(camera => <div key={camera.id}><span className={`activity-dot ${camera.status}`}/><div><b>{camera.name} · {camera.status === 'online' ? 'En línea' : 'Sin conexión'}</b><small>{camera.last_seen ? `Última señal: ${formatDate(camera.last_seen)}` : 'No hay actividad registrada'}</small></div><span className={`activity-badge ${camera.status}`}>{camera.status}</span></div>)}</div></section>;
+}
+
+function SettingsPage({ user, onLogout }: { user: string; onLogout: () => void }) {
+  return <section className="panel settings"><p className="eyebrow">Cuenta y conexión</p><h2>Ajustes del sistema</h2><p className="muted">Información de la sesión y de la conexión configurada.</p><div className="settings-grid"><label>Usuario autenticado<input value={user} readOnly/></label><label>URL de la API<input value={API_URL} readOnly/></label></div><div className="saved"><CheckCircle2 size={17}/> Sesión protegida con JWT</div><button className="danger-button" onClick={onLogout}><LogOut size={16}/> Cerrar sesión</button></section>;
+}
+
+function CameraModal({ camera, onClose }: { camera: Camera; onClose: () => void }) {
+  return <div className="modal-backdrop" onClick={onClose} role="presentation"><section className="camera-modal" onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={`Cámara ${camera.name}`}><button className="close" onClick={onClose} aria-label="Cerrar cámara">×</button><CameraStream camera={camera}/><div className="camera-modal-info"><div><p className="eyebrow">Transmisión en vivo</p><h2>{camera.name}</h2><p>{camera.location} · {camera.model}</p></div><span className={`camera-status ${camera.status}`}>{camera.status === 'online' ? 'En línea' : 'Sin conexión'}</span></div></section></div>;
+}
