@@ -1,13 +1,24 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./camera_dashboard.db"
-    storage_backend: str = "demo"
+    cors_origins: str = "http://localhost:5173"
+    storage_backend: str = "local"
     ftp_host: str = ""
     ftp_port: int = 21
     ftp_user: str = ""
     ftp_password: str = ""
+    ftp_anonymous: bool = False
     ftp_root: str = "/"
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    mediamtx_config_path: str = "/app/mediamtx.yml"
+    mediamtx_webrtc_public_url: str = "http://localhost:8889"
+    frontend_api_url: str = "http://localhost:8000/api/v1"
+    model_config = SettingsConfigDict(
+        env_file=str(Path(__file__).resolve().parents[3] / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
 
 settings = Settings()

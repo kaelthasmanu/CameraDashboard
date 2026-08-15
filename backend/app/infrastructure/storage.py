@@ -17,10 +17,20 @@ class FileStorage:
 
 class FtpStorage:
     def open_range(self, path: str, start: int = 0):
-        ftp = FTP(); ftp.connect(settings.ftp_host, settings.ftp_port, timeout=15); ftp.login(settings.ftp_user, settings.ftp_password)
-        size = ftp.size(path)
-        stream = ftp.transfercmd(f"RETR {path}", rest=start)
+        ftp = FTP(); ftp.connect(settings.ftp_host, settings.ftp_port, timeout=15)
+        if settings.ftp_anonymous:
+            ftp.login(user="anonymous", passwd=settings.ftp_password or "anonymous@localhost")
+        else:
+            ftp.login(settings.ftp_user, settings.ftp_password)
+        remote_path = _ftp_path(path)
+        size = ftp.size(remote_path)
+        stream = ftp.transfercmd(f"RETR {remote_path}", rest=start)
         return _FtpStream(stream, ftp), size
+
+def _ftp_path(path: str) -> str:
+    root = settings.ftp_root.strip().rstrip("/")
+    clean_path = "/" + path.lstrip("/")
+    return clean_path if not root else f"{root}{clean_path}"
 
 class SftpStorage:
     def open_range(self, path: str, start: int = 0):
