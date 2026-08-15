@@ -35,7 +35,22 @@ docker compose up -d --build backend
 
 Para un servidor FTP anónimo usa `STORAGE_BACKEND=ftp`, `FTP_ANONYMOUS=true`, `FTP_USER=anonymous` y un correo como `FTP_PASSWORD`. `FTP_ROOT` permite indicar el directorio raíz remoto.
 
-Las grabaciones FTP se indexan desde `FTP_ROOT/YYYY/MM/DD/*.mp4`; se reconocen nombres como `RLC-810A_00_20260814150544.mp4` y se sirven mediante Range Requests.
+Las grabaciones FTP se indexan desde `FTP_ROOT/YYYY/MM/DD/`. El nombre debe acabar en una marca de tiempo de 14 dígitos (`AAAAMMDDhhmmss`), por ejemplo `NodoRedes_00_20260815100739.mp4`, `PasilloRedes_00_20260815093551.mp4` o el nombre histórico `RLC-810A_00_20260815053452.mp4`. El prefijo puede contener guiones y guiones bajos; el sistema toma como fecha los últimos 14 dígitos antes de la extensión.
+
+Asocia cada prefijo del FTP con la cámara del dashboard mediante `FTP_CAMERA_PREFIXES`, con pares separados por coma en el formato `prefijo:camera_id`. Se pueden declarar varios alias para una misma cámara, por lo que un cambio de nombre no desconecta las grabaciones históricas:
+
+```bash
+# IDs actuales, según el orden de los paths principales de mediamtx.yml.
+# El parser ignora el sufijo de canal (_00, _01, etc.).
+FTP_CAMERA_PREFIXES=NodoRedes:1,PasilloRedes:2,RLC-810A:1
+```
+
+| ID | Path de MediaMTX | Prefijos conocidos |
+| --- | --- | --- |
+| 1 | `redes` | `NodoRedes_00`, `RLC-810A_00` (legado) |
+| 2 | `pasillo_redes` | `PasilloRedes_00` |
+
+Si aparece otro nombre real de cámara, añade otro par, por ejemplo `PuertaTercerPiso:4`, y recrea el backend. No conviene asignar a ciegas un prefijo genérico de modelo a varias cámaras: sólo se puede asociar con certeza cuando ese nombre identifica una cámara concreta. Los `.txt` que acompañan a los vídeos se tratan como metadatos y no se muestran como grabaciones reproducibles.
 
 La persistencia se migra con `cd backend && alembic upgrade head`. El endpoint `GET /api/v1/recordings/{id}/stream` acepta `Range: bytes=...` y soporta almacenamiento local, FTP o SFTP mediante `STORAGE_BACKEND=local|ftp|sftp`.
 
