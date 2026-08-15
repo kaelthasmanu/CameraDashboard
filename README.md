@@ -12,9 +12,20 @@ docker compose up --build
 - API: http://localhost:8000/docs
 - PostgreSQL: localhost:5432
 - MediaMTX HLS: http://localhost:8888
-- MediaMTX WebRTC: http://localhost:8889
+- MediaMTX WebRTC/WHEP: http://localhost:8889
 
-Las cámaras del dashboard se cargan automáticamente desde `mediamtx.yml`. Cada entrada bajo `paths` se expone por la API y su preview WebRTC/WHEP se genera con la ruta pública de MediaMTX. Las credenciales reales de RTSP/FTP deben protegerse y no commitearse en entornos reales.
+Las cámaras del dashboard se cargan automáticamente desde `mediamtx.yml`. MediaMTX entrega vídeo por WebRTC/WHEP (no por WebSocket), que es el transporte de baja latencia adecuado para vídeo en navegador. Cada cámara puede tener dos paths: `nombre` para el stream principal y `nombre_preview` para el substream H.264 de menor bitrate. La API devuelve `stream_url` y, cuando existe el par, `preview_url`; tanto la cuadrícula como el modal prefieren el preview compatible con navegador y usan el principal sólo como fallback.
+
+Parte de una configuración segura con `cp mediamtx.example.yml mediamtx.yml` y sustituye los placeholders. Mantén el archivo real privado y usa el template para compartir configuración sin credenciales RTSP.
+
+MediaMTX usa el puerto 8189 para el tráfico WebRTC, además de 8889 para la señalización. Docker publica 8189 por UDP (preferido) y TCP (fallback). Por defecto se anuncia `localhost`, para usarlo desde la misma máquina. Para abrir el dashboard desde otro equipo, configura ambas URLs públicas en `.env` antes de arrancar:
+
+```bash
+MEDIAMTX_WEBRTC_PUBLIC_URL=http://IP_O_DNS_DEL_SERVIDOR:8889
+MEDIAMTX_WEBRTC_ADDITIONAL_HOSTS=IP_O_DNS_DEL_SERVIDOR
+```
+
+Se pueden indicar varios valores separados por comas. Para un stream fluido, usa el substream H.264 (`h264Preview_01_sub`) y el transporte RTSP por TCP; H.265 y RTP/UDP de entrada suelen causar incompatibilidades de navegador o pérdida de fotogramas. En cada cámara configura H.264 Baseline, sin B-frames y con un GOP/intervalo de keyframes corto (aprox. 1–2 segundos): H.264 por sí solo no garantiza que WebRTC del navegador pueda decodificarlo correctamente.
 
 Después de agregar o cambiar cámaras en `mediamtx.yml`, recrea el backend para que vuelva a leer la configuración:
 
