@@ -2,22 +2,13 @@ services:
   frontend:
     build: ./frontend
     ports: ["5173:5173"]
-    environment:
-      VITE_API_URL: http://localhost:8000/api/v1
+    env_file: .env
     depends_on: [backend]
 
   backend:
     build: ./backend
     ports: ["8000:8000"]
-    environment:
-      DATABASE_URL: postgresql+asyncpg://camera:camera@postgres:5432/camera_dashboard
-      CORS_ORIGINS: http://localhost:5173
-      STORAGE_BACKEND: ftp
-      MEDIAMTX_WEBRTC_PUBLIC_URL: http://localhost:8889
-      MEDIAMTX_CONFIG_PATH: /app/mediamtx.yml
-      FTP_HOST: ftp-server
-      FTP_USER: camera
-      FTP_PASSWORD: change-me
+    env_file: .env
     depends_on: [postgres]
     volumes:
       - ./mediamtx.yml:/app/mediamtx.yml:ro
