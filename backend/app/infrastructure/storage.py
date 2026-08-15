@@ -17,15 +17,25 @@ class FileStorage:
 
 class FtpStorage:
     def open_range(self, path: str, start: int = 0):
-        ftp = FTP(); ftp.connect(settings.ftp_host, settings.ftp_port, timeout=15)
-        if settings.ftp_anonymous:
-            ftp.login(user="anonymous", passwd=settings.ftp_password or "anonymous@localhost")
-        else:
-            ftp.login(settings.ftp_user, settings.ftp_password)
-        remote_path = _ftp_path(path)
-        size = ftp.size(remote_path)
-        stream = ftp.transfercmd(f"RETR {remote_path}", rest=start)
-        return _FtpStream(stream, ftp), size
+        ftp = FTP()
+        try:
+            ftp.connect(settings.ftp_host, settings.ftp_port, timeout=15)
+            if settings.ftp_anonymous:
+                ftp.login(user="anonymous", passwd=settings.ftp_password or "anonymous@localhost")
+            else:
+                ftp.login(settings.ftp_user, settings.ftp_password)
+            # Los MP4 son binarios y REST solo funciona correctamente en TYPE I.
+            ftp.voidcmd("TYPE I")
+            remote_path = _ftp_path(path)
+            size = ftp.size(remote_path)
+            stream = ftp.transfercmd(f"RETR {remote_path}", rest=start)
+            return _FtpStream(stream, ftp), size
+        except Exception as error:
+            try:
+                ftp.close()
+            except Exception:
+                pass
+            raise StorageError(f"FTP cannot stream '{path}': {error}") from error
 
 def _ftp_path(path: str) -> str:
     root = settings.ftp_root.strip().rstrip("/")
