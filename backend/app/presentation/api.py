@@ -5,7 +5,10 @@ from ..application.camera_service import CameraService
 from ..infrastructure.camera_repository import InMemoryCameraRepository
 from .schemas import CameraResponse
 from ..application.recording_service import RecordingService
-from ..infrastructure.recording_repository import FtpRecordingRepository
+from ..infrastructure.recording_repository import (
+    FtpRecordingRepository,
+    FtpRecordingUnavailableError,
+)
 from .schemas import RecordingResponse
 from ..infrastructure.storage import FileStorage, StorageError
 from ..infrastructure.security import get_current_user
@@ -35,7 +38,14 @@ async def get_camera(camera_id: int, service: CameraService = Depends(get_camera
 
 @router.get("/recordings", response_model=list[RecordingResponse])
 async def list_recordings(camera_id: int | None = None, day: date | None = None, service: RecordingService = Depends(get_recording_service), _: UserModel = Depends(get_current_user)):
-    return await service.search(camera_id, day)
+    try:
+        return await service.search(camera_id, day)
+    except FtpRecordingUnavailableError as error:
+        raise HTTPException(
+            status_code=503,
+            detail="El catálogo de grabaciones no está disponible temporalmente.",
+            headers={"Retry-After": "30"},
+        ) from error
 
 @router.get("/recordings/{recording_id}", response_model=RecordingResponse)
 async def get_recording(recording_id: int, service: RecordingService = Depends(get_recording_service), _: UserModel = Depends(get_current_user)):
