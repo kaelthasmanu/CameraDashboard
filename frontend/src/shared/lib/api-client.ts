@@ -17,7 +17,13 @@ function authHeaders(headers?: HeadersInit) {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { ...init, headers: authHeaders(init.headers), credentials: 'include' });
-  if (!response.ok) throw new ApiError(response.status, `La API respondió con ${response.status}`);
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const detail = payload && typeof payload === 'object' && 'detail' in payload && typeof payload.detail === 'string'
+      ? payload.detail
+      : `La API respondió con ${response.status}`;
+    throw new ApiError(response.status, detail);
+  }
   return response.json() as Promise<T>;
 }
 
