@@ -1,0 +1,30 @@
+# Copy this file to mediamtx.yml and replace the RTSP placeholders. Do not
+# commit the real file because it can contain camera credentials.
+logLevel: info
+
+# WHEP/WebRTC signalling is served on 8889; media uses these fixed ICE ports.
+webrtc: yes
+webrtcAddress: :8889
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: :8189
+
+hls: yes
+hlsAddress: :8888
+
+pathDefaults:
+  # The cameras in this deployment lose RTP/UDP packets. TCP preserves frame
+  # integrity before MediaMTX fans the stream out to browser clients.
+  rtspTransport: tcp
+  sourceOnDemandStartTimeout: 10s
+  sourceOnDemandCloseAfter: 15s
+
+paths:
+  lobby:
+    # H.264 main stream: used for the focused/modal view, so it stays idle
+    # until someone opens that camera at full quality.
+    source: rtsp://USER:PASSWORD@CAMERA_HOST:554/h264Preview_01_main
+    sourceOnDemand: yes
+  lobby_preview:
+    # H.264 substream: used by the multi-camera dashboard grid. It stays warm
+    # and reconnects in MediaMTX, preventing six simultaneous cold starts.
+    source: rtsp://USER:PASSWORD@CAMERA_HOST:554/h264Preview_01_sub
