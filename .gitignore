@@ -7,3 +7,5 @@ __pycache__/
 dist/
 *.tsbuildinfo
 /backend/camera_dashboard.db
+mediamtx.yml
+backend/tests/test_*.py
