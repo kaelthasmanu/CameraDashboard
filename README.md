@@ -14,7 +14,13 @@ docker compose up --build
 - MediaMTX HLS: http://localhost:8888
 - MediaMTX WebRTC: http://localhost:8889
 
-El dashboard arranca con cámaras de demostración. Las credenciales reales de RTSP/FTP deben configurarse mediante la API y nunca commitearse.
+Las cámaras del dashboard se cargan automáticamente desde `mediamtx.yml`. Cada entrada bajo `paths` se expone por la API y su preview WebRTC/WHEP se genera con la ruta pública de MediaMTX. Las credenciales reales de RTSP/FTP deben protegerse y no commitearse en entornos reales.
+
+Después de agregar o cambiar cámaras en `mediamtx.yml`, recrea el backend para que vuelva a leer la configuración:
+
+```bash
+docker compose up -d --build backend
+```
 
 La segunda fase añade `GET /api/v1/recordings?camera_id=1&day=2026-08-14` y `GET /api/v1/recordings/{id}`. El repositorio actual es demo; el siguiente adaptador debe indexar FTP/SFTP en PostgreSQL y servir archivos mediante Range Requests.
 
