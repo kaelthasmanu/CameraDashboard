@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "change-this-secret-in-production"
     jwt_algorithm: str = "HS256"
     jwt_access_token_minutes: int = 60
+    auth_cookie_secure: bool = False
     admin_username: str = "admin"
     admin_password: str = "change-me-now"
     model_config = SettingsConfigDict(
