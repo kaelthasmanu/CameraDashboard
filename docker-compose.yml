@@ -7,10 +7,17 @@ services:
 
   backend:
     build: ./backend
+    # A relative SQLite URL (for example sqlite+aiosqlite:///./camera_dashboard.db)
+    # is resolved from /data, which is persisted by the named volume below.
+    working_dir: /data
+    environment:
+      PYTHONPATH: /app
+      ALEMBIC_CONFIG: /app/alembic.ini
     ports: ["8000:8000"]
     env_file: .env
     depends_on: [postgres]
     volumes:
+      - sqlite_data:/data
       - ./mediamtx.yml:/app/mediamtx.yml:ro
 
   postgres:
@@ -39,3 +46,4 @@ services:
 
 volumes:
   camera_db:
+  sqlite_data:
