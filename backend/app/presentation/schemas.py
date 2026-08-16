@@ -78,6 +78,46 @@ class UpdateUserCameraAccessRequest(BaseModel):
             raise ValueError("Los nombres de cámara no pueden estar vacíos")
         return list(dict.fromkeys(normalized))
 
+
+class PresenceHeartbeatRequest(BaseModel):
+    """State reported by one browser tab, timestamped by the server."""
+
+    session_id: str = Field(min_length=16, max_length=128)
+    visible: bool
+
+    @field_validator("session_id")
+    @classmethod
+    def validate_session_id(cls, session_id: str) -> str:
+        normalized = session_id.strip()
+        if not re.fullmatch(r"[A-Za-z0-9-]{16,128}", normalized):
+            raise ValueError("El identificador de sesión no tiene un formato válido")
+        return normalized
+
+
+class ActivityEventResponse(BaseModel):
+    id: int
+    user_id: int
+    username: str
+    user_role: UserRole
+    event_type: str
+    camera_name: str | None = None
+    occurred_at: datetime
+
+
+class UserPresenceResponse(BaseModel):
+    id: int
+    username: str
+    role: UserRole
+    is_account_active: bool
+    active_now: bool
+    last_seen_at: datetime | None = None
+
+
+class AdminActivityResponse(BaseModel):
+    events: list[ActivityEventResponse]
+    users: list[UserPresenceResponse]
+    active_window_seconds: int
+
 class RecordingResponse(BaseModel):
     id: int
     camera_id: int
