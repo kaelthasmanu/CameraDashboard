@@ -1,4 +1,4 @@
-import type { AuthUser, Camera, CreateUserInput, Recording } from '../types/api';
+import type { AdminActivity, AuthUser, Camera, CreateUserInput, Recording } from '../types/api';
 
 const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
@@ -52,6 +52,14 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ camera_names: cameraNames }),
   }),
+  heartbeat: (sessionId: string, visible: boolean, keepalive = false) => request<{ ok: boolean }>('/activity/heartbeat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId, visible }),
+    keepalive,
+  }),
+  logCameraOpened: (cameraId: number) => request<unknown>(`/activity/cameras/${cameraId}/opened`, { method: 'POST' }),
+  adminActivity: (limit = 100) => request<AdminActivity>(`/admin/activity?limit=${encodeURIComponent(limit)}`),
 };
 
 export { API_URL };

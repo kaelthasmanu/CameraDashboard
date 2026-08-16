@@ -6,7 +6,7 @@ const titles: Record<View, { title: string; crumb: string }> = {
   overview: { title: 'Centro de control', crumb: 'Resumen' },
   live: { title: 'Vista en vivo', crumb: 'Monitoreo' },
   recordings: { title: 'Grabaciones', crumb: 'Archivo' },
-  activity: { title: 'Actividad del sistema', crumb: 'Operaciones' },
+  activity: { title: 'Auditoría de usuarios', crumb: 'Administración' },
   settings: { title: 'Ajustes', crumb: 'Cuenta y sistema' },
   users: { title: 'Usuarios', crumb: 'Administración' },
 };
