@@ -1,18 +1,27 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from .presentation.api import router
 from .presentation.schemas import HealthResponse
 from .infrastructure.settings import settings
 from .infrastructure.database import Base, engine, SessionLocal
 from .infrastructure.db_models import UserModel
-from .infrastructure.security import hash_password
+from .infrastructure.security import hash_password, require_admin
 from .presentation.auth import router as auth_router
 from .presentation.activity import router as activity_router
 from .presentation.users import router as users_router
 from .domain.user import UserRole
 from sqlalchemy import select
 
-app = FastAPI(title="Hikvision Camera Dashboard API", version="0.1.0")
+# Documentation is mounted explicitly below so its schema cannot reveal the
+# API surface to unauthenticated visitors.
+app = FastAPI(
+    title="Hikvision Camera Dashboard API",
+    version="0.1.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 app.add_middleware(CORSMiddleware, allow_origins=[origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()], allow_methods=["*"], allow_headers=["*"], allow_credentials=True)
 app.include_router(router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
@@ -37,3 +46,24 @@ async def initialize_database():
 @app.get("/health", response_model=HealthResponse)
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/openapi.json", include_in_schema=False)
+async def openapi_schema(_: UserModel = Depends(require_admin)):
+    return app.openapi()
+
+
+@app.get("/docs", include_in_schema=False)
+async def swagger_ui(_: UserModel = Depends(require_admin)):
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title=f"{app.title} - Swagger UI",
+    )
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_ui(_: UserModel = Depends(require_admin)):
+    return get_redoc_html(
+        openapi_url="/openapi.json",
+        title=f"{app.title} - ReDoc",
+    )

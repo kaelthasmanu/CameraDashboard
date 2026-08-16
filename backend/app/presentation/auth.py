@@ -22,7 +22,7 @@ async def login(response: Response, form: OAuth2PasswordRequestForm = Depends(),
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/logout", status_code=204)
-async def logout(response: Response):
+async def logout(response: Response, _: UserModel = Depends(get_current_user)):
     response.delete_cookie("access_token", path="/")
 @router.get("/me", response_model=UserResponse)
 async def me(
