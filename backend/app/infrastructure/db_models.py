@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from .database import Base
+from ..domain.user import UserRole
 
 class CameraModel(Base):
     __tablename__ = "cameras"
@@ -31,4 +32,9 @@ class UserModel(Base):
     username: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # is_admin is kept while existing installations migrate. New authorization
+    # decisions must use role, which is the source of truth.
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[str] = mapped_column(
+        String(20), default=UserRole.GUARDIA.value, server_default=UserRole.GUARDIA.value
+    )
