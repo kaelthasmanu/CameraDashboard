@@ -17,8 +17,8 @@ export function CameraCard({ camera, onSelect, streamActive = true }: { camera: 
 
 export function CameraStream({ camera, compact = false, active = true }: { camera: Camera; compact?: boolean; active?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  // El preview es H.264 de bajo bitrate; también se prefiere en el modal para
-  // evitar que un stream principal HEVC no compatible con el navegador congele la imagen.
+  // The preview is low-bitrate H.264; it is also preferred in the modal to
+  // prevent an unsupported HEVC main stream from freezing the image in the browser.
   const streamUrl = camera.preview_url ?? camera.stream_url;
   const enabled = active && camera.status === 'online' && camera.enabled;
   const { reconnect, state } = useWhepStream({ enabled, streamUrl, videoRef });
