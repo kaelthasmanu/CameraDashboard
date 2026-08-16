@@ -35,7 +35,7 @@ export const api = {
   },
   me: () => request<AuthUser>('/auth/me'),
   async logout() {
-    try { await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' }); }
+    try { await fetch(`${API_URL}/auth/logout`, { method: 'POST', headers: authHeaders(), credentials: 'include' }); }
     finally { localStorage.removeItem('access_token'); }
   },
   cameras: () => request<Camera[]>('/cameras'),
