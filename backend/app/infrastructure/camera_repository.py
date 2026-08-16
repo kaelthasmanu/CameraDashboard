@@ -16,7 +16,7 @@ class InMemoryCameraRepository:
     def _load_from_mediamtx(self) -> list[Camera]:
         config_path = Path(settings.mediamtx_config_path)
         if not config_path.exists():
-            # Permite ejecutar pytest/uvicorn desde el checkout local.
+            # Allows pytest/uvicorn to run from a local checkout.
             config_path = Path(__file__).resolve().parents[3] / "mediamtx.yml"
         if not config_path.exists():
             raise FileNotFoundError(f"MediaMTX config not found: {config_path}")
@@ -50,7 +50,7 @@ class InMemoryCameraRepository:
                 name=str(path_name),
                 location=f"MediaMTX / {path_name}",
                 model=model,
-                # MediaMTX expone WHEP en /<path>/whep; <path> es la clave del YAML.
+                # MediaMTX exposes WHEP at /<path>/whep; <path> is the YAML key.
                 stream_url=f"{webrtc_base_url}/{path_name}/whep",
                 status=CameraStatus.ONLINE,
                 last_seen=now,
