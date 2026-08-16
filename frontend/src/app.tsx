@@ -67,6 +67,9 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
     onRecordings: () => navigate('recordings'),
     onCameraSelect: setSelectedCamera,
     selectedCameraId: selectedCamera?.id,
+    emptyMessage: user.role !== 'admin' && !user.camera_names.length
+      ? 'No tienes cámaras asignadas. Contacta a un administrador.'
+      : undefined,
   };
 
   return <div className="app-shell">
@@ -79,7 +82,7 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
       {currentView === 'live' && <DashboardPage {...dashboardProps}/>}
       {currentView === 'recordings' && <section className="panel recordings-panel"><div className="toolbar"><div><p className="eyebrow">Archivo de vídeo</p><h2>Grabaciones disponibles</h2><p>Explora y reproduce eventos almacenados de forma segura.</p></div><label className="date"><span>Fecha</span><input type="date" value={day} onChange={event => setDay(event.target.value)}/></label></div>{recordings.loading ? <div className="empty">Cargando grabaciones…</div> : <RecordingList recordings={recordings.recordings} cameras={cameras.cameras} onPlay={setPlaying}/>}</section>}
       {currentView === 'activity' && <ActivityPage cameras={cameras.cameras}/>}
-      {currentView === 'users' && <UsersPage/>}
+      {currentView === 'users' && <UsersPage cameras={cameras.cameras} camerasLoading={cameras.loading}/>}
       {currentView === 'settings' && <SettingsPage user={user.username} onLogout={onLogout}/>}
     </main>
     {playing && <RecordingPlayer recording={playing} camera={cameras.cameras.find(camera => camera.id === playing.camera_id)} onClose={() => setPlaying(null)}/>} 
