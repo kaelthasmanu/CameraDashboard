@@ -52,7 +52,7 @@ FTP_CAMERA_PREFIXES=NodoRedes:1,PasilloRedes:2,RLC-810A:1
 
 If another real camera name appears, add another pair, for example `PuertaTercerPiso:4`, and recreate the backend. Do not blindly assign a generic model prefix to multiple cameras: it can only be associated with certainty when that name identifies a specific camera. The `.txt` files accompanying videos are treated as metadata and are not shown as playable recordings.
 
-Run persistence migrations with `cd backend && alembic upgrade head`. The `GET /api/v1/recordings/{id}/stream` endpoint accepts `Range: bytes=...` and supports local, FTP, or SFTP storage through `STORAGE_BACKEND=local|ftp|sftp`.
+Run persistence migrations with `cd backend && alembic upgrade head`; with Docker, use `docker compose run --rm backend alembic upgrade head`. Before starting an existing installation after this update, apply the migration: it assigns existing administrators the `Admin` role and existing non-administrators the `Supervisor` role; users created afterward are assigned explicitly. The `GET /api/v1/recordings/{id}/stream` endpoint accepts `Range: bytes=...` and supports local, FTP, or SFTP storage through `STORAGE_BACKEND=local|ftp|sftp`.
 
 ## Structure
 
