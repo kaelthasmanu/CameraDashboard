@@ -1,4 +1,5 @@
 import asyncio
+from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -58,7 +59,7 @@ def test_ftp_repository_wraps_connection_oserror(monkeypatch):
 def test_recordings_endpoint_returns_safe_503_when_ftp_is_unavailable():
     app = FastAPI()
     app.include_router(router, prefix="/api/v1")
-    app.dependency_overrides[get_current_user] = lambda: object()
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id=1, role="admin")
     app.dependency_overrides[get_recording_service] = UnavailableRecordingService
 
     with TestClient(app) as client:
