@@ -14,6 +14,10 @@ docker compose up --build
 - MediaMTX HLS: http://localhost:8888
 - MediaMTX WebRTC/WHEP: http://localhost:8889
 
+## API access
+
+The only public application endpoints are `GET /health` and `POST /api/v1/auth/login` (plus browser CORS preflight requests). Every other API endpoint requires a valid session token or authentication cookie; user management and API documentation (`/docs`, `/redoc`, `/openapi.json`) additionally require the **Admin** role.
+
 Dashboard cameras are loaded automatically from `mediamtx.yml`. MediaMTX delivers video over WebRTC/WHEP (not WebSocket), which is the appropriate low-latency transport for browser video. Each camera can have two paths: `name` for the main stream and `name_preview` for the lower-bitrate H.264 substream. The API returns `stream_url` and, when the pair exists, `preview_url`; both the grid and the modal prefer the browser-compatible preview and use the main stream only as a fallback.
 
 Start with a secure configuration using `cp mediamtx.example.yml mediamtx.yml` and replace the placeholders. Keep the real file private and use the template to share configuration without RTSP credentials.
