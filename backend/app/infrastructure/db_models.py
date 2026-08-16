@@ -54,3 +54,36 @@ class UserCameraAccessModel(Base):
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     camera_name: Mapped[str] = mapped_column(String(120), primary_key=True)
+
+
+class UserActivityEventModel(Base):
+    """An append-only audit record for meaningful actions in the dashboard."""
+
+    __tablename__ = "user_activity_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    event_type: Mapped[str] = mapped_column(String(50), index=True)
+    # Keep the MediaMTX path, which remains stable if the YAML camera order changes.
+    camera_name: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class UserPresenceSessionModel(Base):
+    """The most recent server-observed state for one browser tab session.
+
+    Presence is intentionally derived from ``last_seen_at`` instead of a
+    persistent online flag: a browser or network can disappear without sending
+    a final request.
+    """
+
+    __tablename__ = "user_presence_sessions"
+
+    session_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    is_visible: Mapped[bool] = mapped_column(Boolean, default=False)

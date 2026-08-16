@@ -7,6 +7,7 @@ from .infrastructure.database import Base, engine, SessionLocal
 from .infrastructure.db_models import UserModel
 from .infrastructure.security import hash_password
 from .presentation.auth import router as auth_router
+from .presentation.activity import router as activity_router
 from .presentation.users import router as users_router
 from .domain.user import UserRole
 from sqlalchemy import select
@@ -15,6 +16,7 @@ app = FastAPI(title="Hikvision Camera Dashboard API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=[origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()], allow_methods=["*"], allow_headers=["*"], allow_credentials=True)
 app.include_router(router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(activity_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 
 @app.on_event("startup")
