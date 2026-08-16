@@ -24,7 +24,7 @@ class FtpStorage:
                 ftp.login(user="anonymous", passwd=settings.ftp_password or "anonymous@localhost")
             else:
                 ftp.login(settings.ftp_user, settings.ftp_password)
-            # Los MP4 son binarios y REST solo funciona correctamente en TYPE I.
+            # MP4 files are binary, and REST works correctly only in TYPE I.
             ftp.voidcmd("TYPE I")
             remote_path = _ftp_path(path)
             size = ftp.size(remote_path)
