@@ -6,11 +6,11 @@ import zlib
 from ..domain.recording import Recording
 from .settings import settings
 
-# Los equipos de grabación suelen usar ``<cámara>_<canal>_<fecha>.mp4``.
-# El nombre de cámara puede incluir guiones, espacios y guiones bajos; por eso
-# sólo tomamos como separador el último que antecede a la fecha.
-# ``14`` es la cantidad de dígitos de ``AAAAMMDDhhmmss``; no significa que
-# sólo se acepten vídeos del día 14. El día se elige con la carpeta YYYY/MM/DD.
+# Recording devices usually use ``<camera>_<channel>_<date>.mp4``.
+# The camera name can include hyphens, spaces, and underscores, so only the
+# final separator before the date is used as a delimiter.
+# ``14`` is the number of digits in ``YYYYMMDDhhmmss``; it does not mean that
+# only videos from the 14th are accepted. The date is selected by the YYYY/MM/DD folder.
 TIMESTAMP_FORMAT = "%Y%m%d%H%M%S"
 TIMESTAMP_DIGITS = 14
 FILENAME_PATTERN = re.compile(
@@ -113,7 +113,7 @@ class FtpRecordingRepository:
             mapped_camera_id = self._prefixes.get(_normalise_camera_prefix(candidate))
             if mapped_camera_id is not None:
                 return mapped_camera_id
-        # Mantiene el comportamiento demo cuando no se configuró ningún alias.
+        # Preserve demo behavior when no aliases have been configured.
         return 1 if not self._prefixes else None
 
     def _connect(self) -> FTP:
@@ -136,8 +136,8 @@ class FtpRecordingRepository:
         try:
             return list(ftp.mlsd(remote_directory, facts=["type", "size"]))
         except error_perm:
-            # Algunos servidores FTP no implementan MLSD; NLST conserva
-            # compatibilidad con ellos sin tratarlo como una indisponibilidad.
+            # Some FTP servers do not implement MLSD; NLST keeps them
+            # compatible without treating that as an outage.
             return self._list_entries_with_nlst(ftp, remote_directory)
         except all_errors as error:
             raise FtpRecordingUnavailableError("directory listing") from error
@@ -149,8 +149,8 @@ class FtpRecordingRepository:
                 try:
                     size = ftp.size(name)
                 except error_perm:
-                    # SIZE puede no estar disponible para directorios o en
-                    # servidores mínimos. El vídeo sigue siendo indexable.
+                    # SIZE may not be available for directories or on minimal
+                    # servers. The video can still be indexed.
                     size = 0
                 entries.append((name.rsplit("/", 1)[-1], {"type": "file", "size": str(size or 0)}))
             return entries
@@ -163,9 +163,9 @@ class FtpRecordingRepository:
 
     async def search(self, camera_id: int | None = None, day: date | None = None) -> list[Recording]:
         target = day or datetime.now(timezone.utc).date()
-        # Las grabaciones están bajo FTP_ROOT/YYYY/MM/DD. La ruta guardada en
-        # Recording queda relativa a FTP_ROOT para que FileStorage no duplique
-        # el prefijo al servir el archivo.
+        # Recordings are stored under FTP_ROOT/YYYY/MM/DD. The path saved in
+        # Recording is relative to FTP_ROOT so FileStorage does not duplicate
+        # the prefix while serving the file.
         directory = _recording_directory(target)
         remote_directory = self._remote_directory(directory)
         try:
@@ -173,8 +173,8 @@ class FtpRecordingRepository:
         except FtpRecordingUnavailableError:
             raise
         except all_errors as error:
-            # También protege implementaciones sustituidas en pruebas o
-            # adaptadores que aún arrojen errores nativos de socket/FTP.
+            # This also protects substitute implementations in tests or
+            # adapters that still raise native socket/FTP errors.
             raise FtpRecordingUnavailableError("connection") from error
         try:
             entries = self._list_entries(ftp, remote_directory)
@@ -182,8 +182,8 @@ class FtpRecordingRepository:
             try:
                 ftp.quit()
             except all_errors:
-                # La lista ya se obtuvo; no convertir un cierre fallido en un
-                # error visible para el usuario.
+                # The list was already retrieved; do not turn a failed close
+                # into a user-visible error.
                 pass
         items: list[Recording] = []
         for filename, facts in entries:
@@ -197,8 +197,8 @@ class FtpRecordingRepository:
             if mapped_camera_id is None or (camera_id is not None and mapped_camera_id != camera_id):
                 continue
             duration = settings.ftp_recording_duration_seconds
-            # Debe ser estable entre peticiones y menor que Number.MAX_SAFE_INTEGER;
-            # un hash de Python puede superar el límite seguro de JavaScript.
+            # It must be stable across requests and smaller than Number.MAX_SAFE_INTEGER;
+            # a Python hash can exceed JavaScript's safe integer limit.
             recording_id = zlib.crc32(f"{directory}/{filename}".encode("utf-8"))
             item = Recording(recording_id, mapped_camera_id, filename, f"{directory}/{filename}", start, start + timedelta(seconds=duration), int(facts.get("size") or 0), duration)
             self._cache[recording_id] = item; items.append(item)
