@@ -100,8 +100,8 @@ function retryDelay(attempt: number) {
 }
 
 /**
- * Mantiene una sesión WebRTC/WHEP viva. WHEP usa HTTP para señalización y
- * WebRTC para los frames, por lo que no requiere un WebSocket adicional.
+ * Keeps a WebRTC/WHEP session alive. WHEP uses HTTP for signaling and
+ * WebRTC for frames, so it does not require an additional WebSocket.
  */
 export function useWhepStream({ enabled, streamUrl, videoRef }: UseWhepStreamOptions) {
   const [state, setState] = useState<LiveStreamState>('idle');
@@ -220,8 +220,8 @@ export function useWhepStream({ enabled, streamUrl, videoRef }: UseWhepStreamOpt
         return response.ok ? parseIceServers(response.headers.get('Link')) : [];
       } catch (error) {
         if (isAbortError(error)) throw error;
-        // Los servidores WHEP antiguos pueden no implementar OPTIONS; aún se
-        // puede establecer una sesión usando los candidatos locales.
+        // Older WHEP servers may not implement OPTIONS; a session can still
+        // be established using local candidates.
         return [];
       }
     }
