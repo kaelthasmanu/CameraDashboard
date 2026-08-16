@@ -1,4 +1,4 @@
-import type { AuthUser, Camera, Recording } from '../types/api';
+import type { AuthUser, Camera, CreateUserInput, Recording } from '../types/api';
 
 const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
@@ -41,6 +41,12 @@ export const api = {
   cameras: () => request<Camera[]>('/cameras'),
   recordings: (day: string, cameraId?: number) => request<Recording[]>(`/recordings?day=${encodeURIComponent(day)}${cameraId ? `&camera_id=${cameraId}` : ''}`),
   recordingStream: (id: number) => `${API_URL}/recordings/${id}/stream`,
+  users: () => request<AuthUser[]>('/users'),
+  createUser: (input: CreateUserInput) => request<AuthUser>('/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  }),
 };
 
 export { API_URL };
