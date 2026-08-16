@@ -2,7 +2,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from ..application.camera_service import CameraService
-from ..infrastructure.camera_repository import InMemoryCameraRepository
+from .camera_dependencies import get_camera_service
 from .schemas import CameraResponse
 from ..application.recording_service import RecordingService
 from ..infrastructure.recording_repository import (
@@ -11,35 +11,80 @@ from ..infrastructure.recording_repository import (
 )
 from .schemas import RecordingResponse
 from ..infrastructure.storage import FileStorage, StorageError
-from ..infrastructure.security import require_live_access, require_recording_access
+from ..infrastructure.security import (
+    get_authorized_camera_names,
+    get_session,
+    require_live_access,
+    require_recording_access,
+)
 from ..infrastructure.db_models import UserModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
-repository = InMemoryCameraRepository()
 recording_repository = FtpRecordingRepository()
 storage = FileStorage()
-
-def get_camera_service() -> CameraService:
-    return CameraService(repository)
 
 def get_recording_service() -> RecordingService:
     return RecordingService(recording_repository)
 
+
+async def get_visible_camera_ids(
+    user: UserModel,
+    session: AsyncSession,
+    camera_service: CameraService,
+) -> set[int] | None:
+    camera_names = await get_authorized_camera_names(user, session)
+    if camera_names is None:
+        return None
+    cameras = await camera_service.list_cameras()
+    return {camera.id for camera in cameras if camera.name in camera_names}
+
 @router.get("/cameras", response_model=list[CameraResponse])
-async def list_cameras(service: CameraService = Depends(get_camera_service), _: UserModel = Depends(require_live_access)):
-    return await service.list_cameras()
+async def list_cameras(
+    service: CameraService = Depends(get_camera_service),
+    user: UserModel = Depends(require_live_access),
+    session: AsyncSession = Depends(get_session),
+):
+    cameras = await service.list_cameras()
+    camera_names = await get_authorized_camera_names(user, session)
+    if camera_names is None:
+        return cameras
+    return [camera for camera in cameras if camera.name in camera_names]
 
 @router.get("/cameras/{camera_id}", response_model=CameraResponse)
-async def get_camera(camera_id: int, service: CameraService = Depends(get_camera_service), _: UserModel = Depends(require_live_access)):
+async def get_camera(
+    camera_id: int,
+    service: CameraService = Depends(get_camera_service),
+    user: UserModel = Depends(require_live_access),
+    session: AsyncSession = Depends(get_session),
+):
     camera = await service.get_camera(camera_id)
     if camera is None:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    camera_names = await get_authorized_camera_names(user, session)
+    if camera_names is not None and camera.name not in camera_names:
         raise HTTPException(status_code=404, detail="Camera not found")
     return camera
 
 @router.get("/recordings", response_model=list[RecordingResponse])
-async def list_recordings(camera_id: int | None = None, day: date | None = None, service: RecordingService = Depends(get_recording_service), _: UserModel = Depends(require_recording_access)):
+async def list_recordings(
+    camera_id: int | None = None,
+    day: date | None = None,
+    service: RecordingService = Depends(get_recording_service),
+    user: UserModel = Depends(require_recording_access),
+    session: AsyncSession = Depends(get_session),
+    camera_service: CameraService = Depends(get_camera_service),
+):
+    camera_ids = await get_visible_camera_ids(user, session, camera_service)
+    if camera_ids is not None and (
+        not camera_ids or (camera_id is not None and camera_id not in camera_ids)
+    ):
+        return []
     try:
-        return await service.search(camera_id, day)
+        recordings = await service.search(camera_id, day)
+        if camera_ids is None:
+            return recordings
+        return [recording for recording in recordings if recording.camera_id in camera_ids]
     except FtpRecordingUnavailableError as error:
         raise HTTPException(
             status_code=503,
@@ -51,10 +96,15 @@ async def list_recordings(camera_id: int | None = None, day: date | None = None,
 async def get_recording(
     recording_id: int,
     service: RecordingService = Depends(get_recording_service),
-    _: UserModel = Depends(require_recording_access),
+    user: UserModel = Depends(require_recording_access),
+    session: AsyncSession = Depends(get_session),
+    camera_service: CameraService = Depends(get_camera_service),
 ):
+    camera_ids = await get_visible_camera_ids(user, session, camera_service)
+    if camera_ids is not None and not camera_ids:
+        raise HTTPException(status_code=404, detail="Recording not found")
     recording = await service.get(recording_id)
-    if recording is None:
+    if recording is None or (camera_ids is not None and recording.camera_id not in camera_ids):
         raise HTTPException(status_code=404, detail="Recording not found")
     return recording
 
@@ -63,10 +113,15 @@ async def stream_recording(
     recording_id: int,
     request: Request,
     service: RecordingService = Depends(get_recording_service),
-    _: UserModel = Depends(require_recording_access),
+    user: UserModel = Depends(require_recording_access),
+    session: AsyncSession = Depends(get_session),
+    camera_service: CameraService = Depends(get_camera_service),
 ):
+    camera_ids = await get_visible_camera_ids(user, session, camera_service)
+    if camera_ids is not None and not camera_ids:
+        raise HTTPException(status_code=404, detail="Recording not found")
     recording = await service.get(recording_id)
-    if recording is None:
+    if recording is None or (camera_ids is not None and recording.camera_id not in camera_ids):
         raise HTTPException(status_code=404, detail="Recording not found")
     header = request.headers.get("range", "bytes=0-")
     try:
