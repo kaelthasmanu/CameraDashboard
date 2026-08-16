@@ -1,12 +1,16 @@
 services:
   frontend:
     build: ./frontend
+    # Restart after a container failure or Docker/server restart, unless it was
+    # intentionally stopped by an operator.
+    restart: unless-stopped
     ports: ["5173:5173"]
     env_file: .env
     depends_on: [backend]
 
   backend:
     build: ./backend
+    restart: unless-stopped
     # A relative SQLite URL (for example sqlite+aiosqlite:///./camera_dashboard.db)
     # is resolved from /data, which is persisted by the named volume below.
     working_dir: /data
@@ -22,6 +26,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: camera
       POSTGRES_PASSWORD: camera
@@ -32,6 +37,7 @@ services:
     # Pin the server version: a moving `latest` tag can change the streaming
     # configuration at the next deploy.
     image: bluenviron/mediamtx:1.20.0
+    restart: unless-stopped
     ports:
       - "8888:8888"
       - "8889:8889"

@@ -8,6 +8,10 @@ Multi-camera dashboard with React + TypeScript on the frontend and FastAPI on th
 docker compose up --build
 ```
 
+All Compose services use `restart: unless-stopped`: Docker restarts them after
+a process failure and when Docker/the server comes back up. A service that an
+operator stops explicitly remains stopped until it is started again.
+
 - Frontend: http://localhost:5173
 - API: http://localhost:8000/docs
 - PostgreSQL: localhost:5432
@@ -17,6 +21,39 @@ docker compose up --build
 ## API access
 
 The only public application endpoints are `GET /health` and `POST /api/v1/auth/login` (plus browser CORS preflight requests). Every other API endpoint requires a valid session token or authentication cookie; user management and API documentation (`/docs`, `/redoc`, `/openapi.json`) additionally require the **Admin** role.
+
+### CORS origins
+
+The backend reads CORS settings from `.env`. An origin is the URL where the **frontend** is served, including its scheme and port; it is not the API URL and it cannot include a path. Prefer exact origins in `CORS_ORIGINS`, separated by commas. Do not use `*`, because the dashboard uses authenticated requests.
+
+```env
+# One frontend served from an IP address
+CORS_ORIGINS=http://10.34.8.25:5173
+
+# One frontend served from a DNS name
+CORS_ORIGINS=https://camaras.empresa.local
+
+# Local development, an IP, and multiple DNS names
+CORS_ORIGINS=http://localhost:5173,http://10.34.8.25:5173,https://camaras.empresa.local,https://monitor.empresa.local
+```
+
+Browsers always send one concrete origin, so a CIDR cannot be placed in `CORS_ORIGINS`. For a trusted internal network, use the optional CIDR matcher and explicitly restrict its frontend ports. CIDRs match only literal IP origins over HTTP or HTTPS; DNS names must remain in `CORS_ORIGINS`.
+
+```env
+# One IP as a CIDR (an exact origin above is usually clearer)
+CORS_ORIGIN_CIDRS=10.34.8.25/32
+CORS_ORIGIN_CIDR_PORTS=5173
+
+# Several LAN ranges for a frontend running on Vite's port
+CORS_ORIGIN_CIDRS=10.34.8.0/24,192.168.50.0/24
+CORS_ORIGIN_CIDR_PORTS=5173
+
+# HTTPS frontends using the standard port
+CORS_ORIGIN_CIDRS=10.34.8.0/24
+CORS_ORIGIN_CIDR_PORTS=443
+```
+
+If `CORS_ORIGIN_CIDRS` is set, `CORS_ORIGIN_CIDR_PORTS` is required. The API refuses to start with malformed origins, CIDRs, ports, or a wildcard origin so a permissive mistake does not silently expose credentialed API responses.
 
 Dashboard cameras are loaded automatically from `mediamtx.yml`. MediaMTX delivers video over WebRTC/WHEP (not WebSocket), which is the appropriate low-latency transport for browser video. Each camera can have two paths: `name` for the main stream and `name_preview` for the lower-bitrate H.264 substream. The API returns `stream_url` and, when the pair exists, `preview_url`; both the grid and the modal prefer the browser-compatible preview and use the main stream only as a fallback.
 
