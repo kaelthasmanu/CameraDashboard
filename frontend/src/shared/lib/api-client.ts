@@ -47,6 +47,11 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   }),
+  updateUserCameras: (userId: number, cameraNames: string[]) => request<AuthUser>(`/users/${userId}/cameras`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ camera_names: cameraNames }),
+  }),
 };
 
 export { API_URL };
