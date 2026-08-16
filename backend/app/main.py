@@ -1,8 +1,13 @@
 from fastapi import Depends, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from .presentation.api import router
 from .presentation.schemas import HealthResponse
+from .infrastructure.cors import (
+    CIDRCORSMiddleware,
+    parse_cors_origin_cidr_ports,
+    parse_cors_origin_cidrs,
+    parse_cors_origins,
+)
 from .infrastructure.settings import settings
 from .infrastructure.database import Base, engine, SessionLocal
 from .infrastructure.db_models import UserModel
@@ -22,7 +27,22 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
-app.add_middleware(CORSMiddleware, allow_origins=[origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()], allow_methods=["*"], allow_headers=["*"], allow_credentials=True)
+cors_origin_cidrs = parse_cors_origin_cidrs(settings.cors_origin_cidrs)
+cors_cidr_ports = parse_cors_origin_cidr_ports(settings.cors_origin_cidr_ports)
+if cors_origin_cidrs and not cors_cidr_ports:
+    raise ValueError(
+        "CORS_ORIGIN_CIDR_PORTS es obligatorio cuando CORS_ORIGIN_CIDRS está configurado"
+    )
+app.add_middleware(
+    CIDRCORSMiddleware,
+    allow_origins=parse_cors_origins(settings.cors_origins),
+    allow_origin_cidrs=cors_origin_cidrs,
+    cidr_allowed_ports=cors_cidr_ports,
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Range"],
+    expose_headers=["Accept-Ranges", "Content-Length", "Content-Range"],
+    allow_credentials=True,
+)
 app.include_router(router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(activity_router, prefix="/api/v1")

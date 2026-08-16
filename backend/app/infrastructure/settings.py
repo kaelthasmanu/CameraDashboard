@@ -4,6 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./camera_dashboard.db"
     cors_origins: str = "http://localhost:5173"
+    # Exact origins and optional trusted IP networks for browser CORS.
+    cors_origin_cidrs: str = ""
+    cors_origin_cidr_ports: str = ""
     storage_backend: str = "local"
     ftp_host: str = ""
     ftp_port: int = 21
