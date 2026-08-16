@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import SessionLocal
-from .db_models import UserModel
+from .db_models import UserCameraAccessModel, UserModel
 from .settings import settings
 from ..domain.user import UserRole
 
@@ -56,3 +56,19 @@ def require_roles(*allowed_roles: UserRole):
 require_live_access = require_roles(UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.GUARDIA)
 require_recording_access = require_roles(UserRole.ADMIN, UserRole.SUPERVISOR)
 require_admin = require_roles(UserRole.ADMIN)
+
+
+async def get_authorized_camera_names(
+    user: UserModel, session: AsyncSession
+) -> set[str] | None:
+    """Return permitted MediaMTX camera paths, or None for an admin."""
+
+    if user.role == UserRole.ADMIN.value:
+        return None
+
+    result = await session.scalars(
+        select(UserCameraAccessModel.camera_name).where(
+            UserCameraAccessModel.user_id == user.id
+        )
+    )
+    return set(result.all())
