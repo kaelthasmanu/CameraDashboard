@@ -5,10 +5,12 @@ import { useCurrentUser } from './features/auth/hooks/use-current-user';
 import { CameraStream } from './features/cameras/components/camera-card';
 import { useCameras } from './features/cameras/hooks/use-cameras';
 import { PageHeader } from './features/layout/components/page-header';
-import { Sidebar, type View } from './features/layout/components/sidebar';
+import { Sidebar } from './features/layout/components/sidebar';
+import { canAccessView, canViewRecordings, defaultViewForRole, type View } from './features/layout/navigation';
 import { RecordingList } from './features/recordings/components/recording-list';
 import { RecordingPlayer } from './features/recordings/components/recording-player';
 import { useRecordings } from './features/recordings/hooks/use-recordings';
+import { UsersPage } from './features/users/components/users-page';
 import { DashboardPage } from './pages/dashboard-page';
 import { API_URL, api } from './shared/lib/api-client';
 import { formatDate } from './shared/lib/formatters';
@@ -31,26 +33,54 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
   const { user, loading: userLoading } = useCurrentUser();
   const cameras = useCameras();
-  const recordings = useRecordings(day);
+  const recordings = useRecordings(day, canViewRecordings(user?.role));
 
-  useEffect(() => { if (!userLoading && !user) onLogout(); }, [onLogout, user, userLoading]);
+  useEffect(() => {
+    if (!userLoading && !user) onLogout();
+  }, [onLogout, user, userLoading]);
+
+  const currentView: View = user && canAccessView(user.role, view)
+    ? view
+    : user ? defaultViewForRole(user.role) : 'live';
+
+  useEffect(() => {
+    if (user && currentView !== view) setView(currentView);
+  }, [currentView, user, view]);
 
   const error = cameras.error || recordings.error;
   const reload = () => { cameras.reload(); recordings.reload(); };
-  const navigate = (next: View) => { setView(next); setMobileOpen(false); };
+  const navigate = (next: View) => {
+    if (user && canAccessView(user.role, next)) setView(next);
+    setMobileOpen(false);
+  };
+
+  if (userLoading) return <main className="auth-loading"><CircleAlert size={20}/> Verificando tu sesión…</main>;
+  if (!user) return null;
+
+  const dashboardProps = {
+    cameras: cameras.cameras,
+    recordings: recordings.recordings,
+    query,
+    day,
+    loading: cameras.loading,
+    onDayChange: setDay,
+    onRecordings: () => navigate('recordings'),
+    onCameraSelect: setSelectedCamera,
+    selectedCameraId: selectedCamera?.id,
+  };
 
   return <div className="app-shell">
-    <Sidebar view={view} onNavigate={navigate} open={mobileOpen} user={user} onLogout={onLogout}/>
+    <Sidebar view={currentView} onNavigate={navigate} open={mobileOpen} user={user} onLogout={onLogout}/>
     {mobileOpen && <button className="sidebar-scrim" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú"/>}
     <main className="app-main">
-      <PageHeader view={view} query={query} onQueryChange={setQuery} onRefresh={reload} onMenu={() => setMobileOpen(value => !value)} user={user}/>
+      <PageHeader view={currentView} query={query} onQueryChange={setQuery} onRefresh={reload} onMenu={() => setMobileOpen(value => !value)} user={user}/>
       {error && <div className="alert"><WifiOff size={17}/><span>{error}</span><button onClick={reload}>Reintentar</button></div>}
-      {(view === 'overview' || view === 'live') && (
-        <DashboardPage cameras={cameras.cameras} recordings={recordings.recordings} query={query} day={day} loading={cameras.loading} onDayChange={setDay} onRecordings={() => navigate('recordings')} onCameraSelect={setSelectedCamera} selectedCameraId={selectedCamera?.id}/>
-      )}
-      {view === 'recordings' && <section className="panel recordings-panel"><div className="toolbar"><div><p className="eyebrow">Archivo de vídeo</p><h2>Grabaciones disponibles</h2><p>Explora y reproduce eventos almacenados de forma segura.</p></div><label className="date"><span>Fecha</span><input type="date" value={day} onChange={event => setDay(event.target.value)}/></label></div>{recordings.loading ? <div className="empty">Cargando grabaciones…</div> : <RecordingList recordings={recordings.recordings} cameras={cameras.cameras} onPlay={setPlaying}/>}</section>}
-      {view === 'activity' && <ActivityPage cameras={cameras.cameras}/>} 
-      {view === 'settings' && <SettingsPage user={user?.username ?? 'Usuario'} onLogout={onLogout}/>} 
+      {currentView === 'overview' && <DashboardPage {...dashboardProps} showOverview/>}
+      {currentView === 'live' && <DashboardPage {...dashboardProps}/>}
+      {currentView === 'recordings' && <section className="panel recordings-panel"><div className="toolbar"><div><p className="eyebrow">Archivo de vídeo</p><h2>Grabaciones disponibles</h2><p>Explora y reproduce eventos almacenados de forma segura.</p></div><label className="date"><span>Fecha</span><input type="date" value={day} onChange={event => setDay(event.target.value)}/></label></div>{recordings.loading ? <div className="empty">Cargando grabaciones…</div> : <RecordingList recordings={recordings.recordings} cameras={cameras.cameras} onPlay={setPlaying}/>}</section>}
+      {currentView === 'activity' && <ActivityPage cameras={cameras.cameras}/>}
+      {currentView === 'users' && <UsersPage/>}
+      {currentView === 'settings' && <SettingsPage user={user.username} onLogout={onLogout}/>}
     </main>
     {playing && <RecordingPlayer recording={playing} camera={cameras.cameras.find(camera => camera.id === playing.camera_id)} onClose={() => setPlaying(null)}/>} 
     {selectedCamera && <CameraModal camera={selectedCamera} onClose={() => setSelectedCamera(null)}/>} 
