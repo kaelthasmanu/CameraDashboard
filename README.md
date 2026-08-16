@@ -54,6 +54,14 @@ If another real camera name appears, add another pair, for example `PuertaTercer
 
 Run persistence migrations with `cd backend && alembic upgrade head`; with Docker, use `docker compose run --rm backend alembic upgrade head`. Before starting an existing installation after this update, apply the migration: it assigns existing administrators the `Admin` role and existing non-administrators the `Supervisor` role; users created afterward are assigned explicitly. The `GET /api/v1/recordings/{id}/stream` endpoint accepts `Range: bytes=...` and supports local, FTP, or SFTP storage through `STORAGE_BACKEND=local|ftp|sftp`.
 
+## Roles and camera access
+
+- **Admin** can access every camera and manage users.
+- **Supervisor** can access live views and recordings only for cameras assigned by an admin.
+- **Guardia** can access live views only for cameras assigned by an admin.
+
+Camera assignments use the stable MediaMTX path name, rather than its dashboard ID, so reordering paths does not change a user's permissions. The access table starts empty after the migration: existing non-admin users must be assigned cameras by an administrator before they can view any. These permissions protect the dashboard API; deployments that expose MediaMTX directly should also add MediaMTX authentication or an authorization-aware proxy for network-level stream protection.
+
 ## Structure
 
 ```text
