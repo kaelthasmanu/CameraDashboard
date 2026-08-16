@@ -3,9 +3,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..infrastructure.db_models import UserModel
-from ..infrastructure.security import create_access_token, get_current_user, get_session, verify_password
+from ..infrastructure.security import create_access_token, get_authorized_camera_names, get_current_user, get_session, verify_password
 from ..infrastructure.settings import settings
 from .schemas import TokenResponse, UserResponse
+from .user_serializers import serialize_user
 router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/login", response_model=TokenResponse)
 async def login(response: Response, form: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):
@@ -19,4 +20,9 @@ async def login(response: Response, form: OAuth2PasswordRequestForm = Depends(),
 async def logout(response: Response):
     response.delete_cookie("access_token", path="/")
 @router.get("/me", response_model=UserResponse)
-async def me(user: UserModel = Depends(get_current_user)): return user
+async def me(
+    user: UserModel = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    camera_names = await get_authorized_camera_names(user, session)
+    return serialize_user(user, camera_names or [])
