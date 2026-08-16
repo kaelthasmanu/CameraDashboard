@@ -38,3 +38,19 @@ class UserModel(Base):
     role: Mapped[str] = mapped_column(
         String(20), default=UserRole.GUARDIA.value, server_default=UserRole.GUARDIA.value
     )
+
+
+class UserCameraAccessModel(Base):
+    """MediaMTX camera paths a non-admin user is allowed to access.
+
+    Cameras are sourced dynamically from MediaMTX. Its numeric IDs depend on
+    the YAML order, so a stable path name is stored instead of camera_id.
+    The user foreign key still ensures access rows are removed with their user.
+    """
+
+    __tablename__ = "user_camera_access"
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    camera_name: Mapped[str] = mapped_column(String(120), primary_key=True)
