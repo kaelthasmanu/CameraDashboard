@@ -54,6 +54,10 @@ If another real camera name appears, add another pair, for example `PuertaTercer
 
 Run persistence migrations with `cd backend && alembic upgrade head`; with Docker, use `docker compose run --rm backend alembic upgrade head`. Before starting an existing installation after this update, apply the migration: it assigns existing administrators the `Admin` role and existing non-administrators the `Supervisor` role; users created afterward are assigned explicitly. The `GET /api/v1/recordings/{id}/stream` endpoint accepts `Range: bytes=...` and supports local, FTP, or SFTP storage through `STORAGE_BACKEND=local|ftp|sftp`.
 
+### SQLite in Docker
+
+When `DATABASE_URL` uses SQLite, the backend runs from `/data` and Docker stores that directory in the named `sqlite_data` volume. Therefore the default relative SQLite URL (`sqlite+aiosqlite:///./camera_dashboard.db`) persists across `docker compose down` and container rebuilds. If you configure an absolute SQLite URL, point it inside `/data`, for example `sqlite+aiosqlite:////data/camera_dashboard.db`. Do not use `docker compose down -v` when you need to retain database data, because that command intentionally removes named volumes.
+
 ## Roles and camera access
 
 - **Admin** can access every camera and manage users.
