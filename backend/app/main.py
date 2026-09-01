@@ -20,6 +20,7 @@ from .infrastructure.security import hash_password, require_admin
 from .presentation.auth import router as auth_router
 from .presentation.activity import router as activity_router
 from .presentation.users import router as users_router
+from .presentation.camera_dependencies import person_recognition_service
 from .domain.user import UserRole
 from sqlalchemy import select
 
@@ -71,6 +72,12 @@ async def initialize_database():
                 role=UserRole.ADMIN.value,
             ))
             await session.commit()
+    await person_recognition_service.start()
+
+
+@app.on_event("shutdown")
+async def stop_person_recognition():
+    await person_recognition_service.stop()
 
 @app.get("/health", response_model=HealthResponse)
 async def health():
