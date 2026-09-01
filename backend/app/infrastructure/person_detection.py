@@ -153,6 +153,9 @@ class PersonRecognitionService:
                 frame,
                 classes=[0],
                 conf=settings.person_detection_confidence,
+                imgsz=settings.person_detection_image_size,
+                augment=settings.person_detection_augment,
+                max_det=settings.person_detection_max_detections,
                 verbose=False,
             )
         return sum(len(result.boxes) for result in results)
