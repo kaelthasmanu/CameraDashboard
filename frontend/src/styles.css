@@ -118,3 +118,4 @@ h2 { color: #1a292b; font-size: 20px; letter-spacing: -0.035em; font-weight: 800
 @media (max-width: 560px) { .audit-intro { flex-direction: column; }.audit-summary { grid-template-columns: 1fr; }.presence-row { align-items: start; flex-wrap: wrap; }.presence-state { width: 100%; justify-items: start; padding-left: 43px; text-align: left; }.presence-state small { white-space: normal; }.audit-section-heading, .event-list li, .presence-row { padding-right: 15px; padding-left: 15px; }.audit-explanation { margin-right: 15px; margin-left: 15px; } }
 
 @keyframes alarm-pulse { from { opacity: .72; } to { opacity: 1; } }
+@keyframes alarm-ring { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }.alarm-ring { animation: alarm-ring .16s ease-in-out infinite alternate; }

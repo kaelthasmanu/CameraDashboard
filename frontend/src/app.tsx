@@ -6,6 +6,7 @@ import { useCurrentUser } from './features/auth/hooks/use-current-user';
 import { usePresenceHeartbeat } from './features/activity/hooks/use-presence-heartbeat';
 import { CameraStream } from './features/cameras/components/camera-card';
 import { useAlarmPreferences } from './features/cameras/hooks/use-alarm-preferences';
+import { usePersonDetections } from './features/cameras/hooks/use-person-detections';
 import { useCameras } from './features/cameras/hooks/use-cameras';
 import { PageHeader } from './features/layout/components/page-header';
 import { Sidebar } from './features/layout/components/sidebar';
@@ -37,6 +38,7 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const { user, loading: userLoading } = useCurrentUser();
   const cameras = useCameras();
   const { preferences: alarmPreferences, updatePreference: updateAlarmPreference } = useAlarmPreferences(user?.id);
+  const detectedCameraIds = usePersonDetections(user?.id);
   const recordings = useRecordings(day, canViewRecordings(user?.role));
   usePresenceHeartbeat(user?.id);
 
@@ -82,6 +84,7 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
     onCameraSelect: openCamera,
     selectedCameraId: selectedCamera?.id,
     alarmPreferences,
+    detectedCameraIds,
     onAlarmToggle: toggleAlarm,
     emptyMessage: user.role !== 'admin' && !user.camera_names.length
       ? 'No tienes cámaras asignadas. Contacta a un administrador.'
@@ -102,7 +105,7 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
       {currentView === 'settings' && <SettingsPage user={user.username} onLogout={onLogout}/>}
     </main>
     {playing && <RecordingPlayer recording={playing} camera={cameras.cameras.find(camera => camera.id === playing.camera_id)} onClose={() => setPlaying(null)}/>} 
-    {selectedCamera && <CameraModal camera={selectedCamera} alarmEnabled={alarmPreferences[selectedCamera.name] ?? true} onAlarmToggle={enabled => toggleAlarm(selectedCamera, enabled)} onClose={() => setSelectedCamera(null)}/>} 
+    {selectedCamera && <CameraModal camera={selectedCamera} alarmEnabled={alarmPreferences[selectedCamera.name] ?? true} personDetected={detectedCameraIds.has(selectedCamera.id)} onAlarmToggle={enabled => toggleAlarm(selectedCamera, enabled)} onClose={() => setSelectedCamera(null)}/>} 
   </div>;
 }
 
@@ -110,6 +113,6 @@ function SettingsPage({ user, onLogout }: { user: string; onLogout: () => void }
   return <section className="panel settings"><p className="eyebrow">Cuenta y conexión</p><h2>Ajustes del sistema</h2><p className="muted">Información de la sesión y de la conexión configurada.</p><div className="settings-grid"><label>Usuario autenticado<input value={user} readOnly/></label><label>URL de la API<input value={API_URL} readOnly/></label></div><div className="saved"><CheckCircle2 size={17}/> Sesión protegida con JWT</div><button className="danger-button" onClick={onLogout}><LogOut size={16}/> Cerrar sesión</button></section>;
 }
 
-function CameraModal({ camera, alarmEnabled, onAlarmToggle, onClose }: { camera: Camera; alarmEnabled: boolean; onAlarmToggle: (enabled: boolean) => void; onClose: () => void }) {
-  return <div className="modal-backdrop" onClick={onClose} role="presentation"><section className="camera-modal" onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={`Cámara ${camera.name}`}><button className="close" onClick={onClose} aria-label="Cerrar cámara">×</button><CameraStream camera={camera} alarmEnabled={alarmEnabled}/><div className="camera-modal-info"><div><p className="eyebrow">Transmisión en vivo</p><h2>{camera.name}</h2><p>{camera.location} · {camera.model}</p></div><button className="alarm-toggle modal-alarm-toggle" type="button" aria-label={alarmEnabled ? 'Desactivar alarma' : 'Activar alarma'} onClick={() => onAlarmToggle(!alarmEnabled)}>{alarmEnabled ? 'Alarma activa' : 'Alarma desactivada'}</button><span className={`camera-status ${camera.status}`}>{camera.status === 'online' ? 'En línea' : 'Sin conexión'}</span></div></section></div>;
+function CameraModal({ camera, alarmEnabled, personDetected, onAlarmToggle, onClose }: { camera: Camera; alarmEnabled: boolean; personDetected: boolean; onAlarmToggle: (enabled: boolean) => void; onClose: () => void }) {
+  return <div className="modal-backdrop" onClick={onClose} role="presentation"><section className="camera-modal" onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={`Cámara ${camera.name}`}><button className="close" onClick={onClose} aria-label="Cerrar cámara">×</button><CameraStream camera={camera} alarmEnabled={alarmEnabled} personDetected={personDetected}/><div className="camera-modal-info"><div><p className="eyebrow">Transmisión en vivo</p><h2>{camera.name}</h2><p>{camera.location} · {camera.model}</p></div><button className="alarm-toggle modal-alarm-toggle" type="button" aria-label={alarmEnabled ? 'Desactivar alarma' : 'Activar alarma'} onClick={() => onAlarmToggle(!alarmEnabled)}>{alarmEnabled ? 'Alarma activa' : 'Alarma desactivada'}</button><span className={`camera-status ${camera.status}`}>{camera.status === 'online' ? 'En línea' : 'Sin conexión'}</span></div></section></div>;
 }
