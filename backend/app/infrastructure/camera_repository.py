@@ -11,9 +11,9 @@ PREVIEW_PATH_SUFFIX = "_preview"
 
 class InMemoryCameraRepository:
     def __init__(self):
-        self._cameras = self._load_from_mediamtx()
+        self._cameras, self._detection_sources = self._load_from_mediamtx()
 
-    def _load_from_mediamtx(self) -> list[Camera]:
+    def _load_from_mediamtx(self) -> tuple[list[Camera], dict[int, str]]:
         config_path = Path(settings.mediamtx_config_path)
         if not config_path.exists():
             # Allows pytest/uvicorn to run from a local checkout.
@@ -29,6 +29,7 @@ class InMemoryCameraRepository:
 
         webrtc_base_url = settings.mediamtx_webrtc_public_url.rstrip("/")
         cameras: list[Camera] = []
+        detection_sources: dict[int, str] = {}
         now = datetime.now(timezone.utc)
         for path_name, path_config in paths.items():
             # Preview paths are paired with their main path below and must not
@@ -45,8 +46,9 @@ class InMemoryCameraRepository:
             preview_url = None
             if isinstance(preview_path_config, dict) and preview_path_config.get("source"):
                 preview_url = f"{webrtc_base_url}/{preview_path_name}/whep"
+            camera_id = len(cameras) + 1
             cameras.append(Camera(
-                id=len(cameras) + 1,
+                id=camera_id,
                 name=str(path_name),
                 location=f"MediaMTX / {path_name}",
                 model=model,
@@ -56,10 +58,14 @@ class InMemoryCameraRepository:
                 last_seen=now,
                 preview_url=preview_url,
             ))
-        return cameras
+            detection_sources[camera_id] = source
+        return cameras, detection_sources
 
     async def list(self):
         return self._cameras
 
     async def get(self, camera_id):
         return next((camera for camera in self._cameras if camera.id == camera_id), None)
+
+    async def list_detection_sources(self) -> dict[int, str]:
+        return self._detection_sources.copy()
