@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Bell, BellOff, BellRing, Camera as CameraIcon, MoreVertical, Play, RotateCw, WifiOff } from 'lucide-react';
 import { formatDate } from '../../../shared/lib/formatters';
 import type { Camera } from '../../../shared/types/api';
-import { useMotionAlarm } from '../hooks/use-motion-alarm';
+import { usePersonAlarm } from '../hooks/use-person-alarm';
 import { useWhepStream } from '../hooks/use-whep-stream';
 
 export function CameraCard({ camera, onSelect, streamActive = true, alarmEnabled = true, personDetected = false, onAlarmToggle }: { camera: Camera; onSelect: (camera: Camera) => void; streamActive?: boolean; alarmEnabled?: boolean; personDetected?: boolean; onAlarmToggle?: (enabled: boolean) => void }) {
@@ -23,16 +23,16 @@ export function CameraStream({ camera, compact = false, active = true, alarmEnab
   const streamUrl = camera.preview_url ?? camera.stream_url;
   const enabled = active && camera.status === 'online' && camera.enabled;
   const { reconnect, state } = useWhepStream({ enabled, streamUrl, videoRef });
-  const motionDetected = useMotionAlarm(videoRef, alarmEnabled && enabled, personDetected);
+  const personAlarmActive = usePersonAlarm(alarmEnabled, personDetected, active);
 
   const retry = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     reconnect();
   };
 
-  return <div className={`scene ${compact ? 'compact' : ''} ${motionDetected ? 'motion-detected' : ''}`}>
+  return <div className={`scene ${compact ? 'compact' : ''} ${personAlarmActive ? 'person-detected' : ''}`}>
     <video ref={videoRef} className="live-video" autoPlay muted playsInline controls={!compact} onError={reconnect}/>
-    {motionDetected && <div className="motion-alert" role="status"><BellRing size={14} className="alarm-ring"/>{personDetected ? 'Persona detectada' : 'Movimiento detectado'}</div>}
+    {personAlarmActive && <div className="motion-alert" role="status"><BellRing size={14} className="alarm-ring"/>Persona detectada</div>}
     {!active && <div className="stream-message paused"><CameraIcon size={30}/><span>Abierta en vista ampliada</span></div>}
     {active && !enabled && <div className="stream-message error"><WifiOff size={30}/><span>Cámara no disponible</span></div>}
     {enabled && state === 'connecting' && <div className="stream-message"><CameraIcon size={34}/><span>Conectando al directo…</span></div>}
