@@ -82,13 +82,13 @@ available only to users who can access that camera. The dashboard checks for
 those events every second and shows the ringing alarm icon and plays the alarm
 when that user's alarm preference for the camera is enabled.
 
-The detector is enabled by default. It loads `yolo11n.pt` the first time it
+The detector is enabled by default. It loads `yolo11m.pt` the first time it
 starts; for a production server, download the model in advance and set an
 absolute path that is available inside the backend container.
 
 ```env
 PERSON_DETECTION_ENABLED=true
-PERSON_DETECTION_MODEL=/models/yolo11n.pt
+PERSON_DETECTION_MODEL=/models/yolo11m.pt
 PERSON_DETECTION_CONFIDENCE=0.50
 PERSON_DETECTION_FRAME_INTERVAL_SECONDS=0.5
 PERSON_DETECTION_ALERT_SECONDS=5
