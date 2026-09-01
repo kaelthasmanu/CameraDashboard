@@ -17,6 +17,12 @@ class CameraResponse(BaseModel):
     enabled: bool
     last_seen: datetime | None
 
+
+class PersonDetectionResponse(BaseModel):
+    camera_id: int
+    person_count: int
+    detected_at: datetime
+
 class HealthResponse(BaseModel):
     status: str
 

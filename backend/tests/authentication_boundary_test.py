@@ -26,6 +26,7 @@ from app.main import app
 PROTECTED_REQUESTS: list[tuple[str, str, dict[str, Any]]] = [
     ("get", "/api/v1/cameras", {}),
     ("get", "/api/v1/cameras/1", {}),
+    ("get", "/api/v1/person-detections", {}),
     ("get", "/api/v1/alarm-preferences", {}),
     ("put", "/api/v1/alarm-preferences/1", {"json": {"enabled": False}}),
     ("get", "/api/v1/recordings", {}),
@@ -68,6 +69,7 @@ PUBLIC_ROUTE_METHODS = {
 PROTECTED_ROUTE_METHODS = {
     ("get", "/api/v1/cameras"),
     ("get", "/api/v1/cameras/{camera_id}"),
+    ("get", "/api/v1/person-detections"),
     ("get", "/api/v1/alarm-preferences"),
     ("put", "/api/v1/alarm-preferences/{camera_id}"),
     ("get", "/api/v1/recordings"),
