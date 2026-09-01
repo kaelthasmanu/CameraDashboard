@@ -12,3 +12,5 @@ httpx==0.28.1
 PyYAML==6.0.2
 PyJWT==2.10.1
 python-multipart==0.0.20
+opencv-python-headless==5.0.0.93
+ultralytics==8.4.137
