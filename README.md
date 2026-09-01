@@ -74,6 +74,33 @@ After adding or changing cameras in `mediamtx.yml`, recreate the backend so it r
 docker compose up -d --build backend
 ```
 
+## Person recognition alarms
+
+The backend continuously reads every primary RTSP camera source and uses the
+YOLO model to recognize the `person` class. A recent detection is made
+available only to users who can access that camera. The dashboard checks for
+those events every second and shows the ringing alarm icon and plays the alarm
+when that user's alarm preference for the camera is enabled.
+
+The detector is enabled by default. It loads `yolo11n.pt` the first time it
+starts; for a production server, download the model in advance and set an
+absolute path that is available inside the backend container.
+
+```env
+PERSON_DETECTION_ENABLED=true
+PERSON_DETECTION_MODEL=/models/yolo11n.pt
+PERSON_DETECTION_CONFIDENCE=0.50
+PERSON_DETECTION_FRAME_INTERVAL_SECONDS=0.5
+PERSON_DETECTION_ALERT_SECONDS=5
+```
+
+`PERSON_DETECTION_CONFIDENCE` is the minimum detection confidence. Increase it
+to reduce false positives; lower it only when people at distance are missed.
+`PERSON_DETECTION_FRAME_INTERVAL_SECONDS` determines the maximum rate per
+camera, and `PERSON_DETECTION_ALERT_SECONDS` is how long a confirmed detection
+remains active for the dashboard. The model executes on CPU unless the
+container is configured with an available GPU runtime.
+
 For an anonymous FTP server, use `STORAGE_BACKEND=ftp`, `FTP_ANONYMOUS=true`, `FTP_USER=anonymous`, and an email address as `FTP_PASSWORD`. `FTP_ROOT` lets you specify the remote root directory.
 
 FTP recordings are indexed from `FTP_ROOT/YYYY/MM/DD/`. The filename must end with a 14-digit timestamp (`YYYYMMDDhhmmss`), for example `NodoRedes_00_20260815100739.mp4`, `PasilloRedes_00_20260815093551.mp4`, or the historical name `RLC-810A_00_20260815053452.mp4`. The prefix can contain hyphens and underscores; the system uses the last 14 digits before the extension as the date.
