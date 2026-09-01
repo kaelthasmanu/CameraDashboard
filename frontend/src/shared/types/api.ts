@@ -4,6 +4,7 @@ export interface Camera { id: number; name: string; location: string; model: str
 export interface Recording { id: number; camera_id: number; filename: string; start_time: string; end_time: string; size_bytes: number; duration_seconds: number; }
 export interface AuthUser { id: number; username: string; is_active: boolean; is_admin: boolean; role: UserRole; camera_names: string[]; }
 export type AlarmPreferences = Record<string, boolean>;
+export interface PersonDetection { camera_id: number; person_count: number; detected_at: string; }
 export interface CreateUserInput { username: string; password: string; role: UserRole; camera_names: string[]; }
 export type UserActivityType = 'login' | 'camera_opened';
 export interface UserActivityEvent {

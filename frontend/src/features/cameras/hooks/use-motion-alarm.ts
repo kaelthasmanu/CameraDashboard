@@ -41,7 +41,7 @@ function hasMotion(previous: Uint8ClampedArray, current: Uint8ClampedArray) {
   return changedPixels / (current.length / 4) > MOTION_THRESHOLD;
 }
 
-export function useMotionAlarm(videoRef: RefObject<HTMLVideoElement | null>, enabled: boolean) {
+export function useMotionAlarm(videoRef: RefObject<HTMLVideoElement | null>, enabled: boolean, personDetected = false) {
   const [motionDetected, setMotionDetected] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -76,7 +76,7 @@ export function useMotionAlarm(videoRef: RefObject<HTMLVideoElement | null>, ena
       try {
         context.drawImage(video, 0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT);
         const currentFrame = context.getImageData(0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT).data;
-        if (previousFrame && hasMotion(previousFrame, currentFrame)) {
+        if (previousFrame && (hasMotion(previousFrame, currentFrame) || personDetected)) {
           setMotionDetected(true);
           window.clearTimeout(motionResetTimer);
           motionResetTimer = window.setTimeout(() => setMotionDetected(false), ALARM_COOLDOWN_MS);
@@ -100,7 +100,7 @@ export function useMotionAlarm(videoRef: RefObject<HTMLVideoElement | null>, ena
       document.removeEventListener('pointerdown', unlockAudio);
       document.removeEventListener('keydown', unlockAudio);
     };
-  }, [enabled, videoRef]);
+  }, [enabled, personDetected, videoRef]);
 
   return motionDetected;
 }

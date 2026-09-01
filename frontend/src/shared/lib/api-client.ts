@@ -1,4 +1,4 @@
-import type { AdminActivity, AlarmPreferences, AuthUser, Camera, CreateUserInput, Recording } from '../types/api';
+import type { AdminActivity, AlarmPreferences, AuthUser, Camera, CreateUserInput, PersonDetection, Recording } from '../types/api';
 
 const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1').replace(/\/$/, '');
 
@@ -39,6 +39,7 @@ export const api = {
     finally { localStorage.removeItem('access_token'); }
   },
   cameras: () => request<Camera[]>('/cameras'),
+  personDetections: () => request<PersonDetection[]>('/person-detections'),
   alarmPreferences: () => request<AlarmPreferences>('/alarm-preferences'),
   updateAlarmPreference: (cameraId: number, enabled: boolean) => request<AlarmPreferences>(`/alarm-preferences/${cameraId}`, {
     method: 'PUT',
