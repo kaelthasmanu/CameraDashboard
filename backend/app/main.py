@@ -1,3 +1,8 @@
+import asyncio
+from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
 from fastapi import Depends, FastAPI
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from .presentation.api import router
@@ -9,7 +14,7 @@ from .infrastructure.cors import (
     parse_cors_origins,
 )
 from .infrastructure.settings import settings
-from .infrastructure.database import Base, engine, SessionLocal
+from .infrastructure.database import SessionLocal
 from .infrastructure.db_models import UserModel
 from .infrastructure.security import hash_password, require_admin
 from .presentation.auth import router as auth_router
@@ -48,10 +53,14 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(activity_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 
+
+def run_database_migrations() -> None:
+    alembic_config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
+    command.upgrade(alembic_config, "head")
+
 @app.on_event("startup")
 async def initialize_database():
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
+    await asyncio.to_thread(run_database_migrations)
     async with SessionLocal() as session:
         user = await session.scalar(select(UserModel).where(UserModel.username == settings.admin_username))
         if user is None:

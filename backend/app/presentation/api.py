@@ -18,6 +18,8 @@ from ..infrastructure.security import (
     require_recording_access,
 )
 from ..infrastructure.db_models import UserModel
+from ..infrastructure.db_models import UserCameraAlarmPreferenceModel
+from .schemas import CameraResponse, UpdateAlarmPreferenceRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
@@ -38,6 +40,69 @@ async def get_visible_camera_ids(
         return None
     cameras = await camera_service.list_cameras()
     return {camera.id for camera in cameras if camera.name in camera_names}
+
+async def get_authorized_camera(
+    camera_id: int,
+    user: UserModel,
+    session: AsyncSession,
+    camera_service: CameraService,
+):
+    camera = await camera_service.get_camera(camera_id)
+    if camera is None:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    camera_names = await get_authorized_camera_names(user, session)
+    if camera_names is not None and camera.name not in camera_names:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    return camera
+
+@router.get("/alarm-preferences", response_model=dict[str, bool])
+async def list_alarm_preferences(
+    user: UserModel = Depends(require_live_access),
+    session: AsyncSession = Depends(get_session),
+    camera_service: CameraService = Depends(get_camera_service),
+):
+    cameras = await camera_service.list_cameras()
+    camera_names = await get_authorized_camera_names(user, session)
+    visible_names = {
+        camera.name for camera in cameras
+        if camera_names is None or camera.name in camera_names
+    }
+    rows = (
+        await session.scalars(
+            select(UserCameraAlarmPreferenceModel).where(
+                UserCameraAlarmPreferenceModel.user_id == user.id,
+                UserCameraAlarmPreferenceModel.camera_name.in_(visible_names),
+            )
+        )
+    ).all()
+    preferences = {camera_name: True for camera_name in visible_names}
+    preferences.update({row.camera_name: row.enabled for row in rows})
+    return preferences
+
+@router.put("/alarm-preferences/{camera_id}", response_model=dict[str, bool])
+async def update_alarm_preference(
+    camera_id: int,
+    payload: UpdateAlarmPreferenceRequest,
+    user: UserModel = Depends(require_live_access),
+    session: AsyncSession = Depends(get_session),
+    camera_service: CameraService = Depends(get_camera_service),
+):
+    camera = await get_authorized_camera(camera_id, user, session, camera_service)
+    preference = await session.scalar(
+        select(UserCameraAlarmPreferenceModel).where(
+            UserCameraAlarmPreferenceModel.user_id == user.id,
+            UserCameraAlarmPreferenceModel.camera_name == camera.name,
+        )
+    )
+    if preference is None:
+        preference = UserCameraAlarmPreferenceModel(
+            user_id=user.id, camera_name=camera.name, enabled=payload.enabled
+        )
+        session.add(preference)
+    else:
+        preference.enabled = payload.enabled
+    await session.commit()
+    return {camera.name: payload.enabled}
 
 @router.get("/cameras", response_model=list[CameraResponse])
 async def list_cameras(
