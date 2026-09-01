@@ -2,7 +2,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from ..application.camera_service import CameraService
-from .camera_dependencies import get_camera_service
+from .camera_dependencies import get_camera_service, get_person_recognition_service
 from .schemas import CameraResponse
 from ..application.recording_service import RecordingService
 from ..infrastructure.recording_repository import (
@@ -19,7 +19,8 @@ from ..infrastructure.security import (
 )
 from ..infrastructure.db_models import UserModel
 from ..infrastructure.db_models import UserCameraAlarmPreferenceModel
-from .schemas import CameraResponse, UpdateAlarmPreferenceRequest
+from .schemas import CameraResponse, PersonDetectionResponse, UpdateAlarmPreferenceRequest
+from ..infrastructure.person_detection import PersonRecognitionService
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
@@ -54,6 +55,17 @@ async def get_authorized_camera(
     if camera_names is not None and camera.name not in camera_names:
         raise HTTPException(status_code=404, detail="Camera not found")
     return camera
+
+
+@router.get("/person-detections", response_model=list[PersonDetectionResponse])
+async def list_person_detections(
+    user: UserModel = Depends(require_live_access),
+    session: AsyncSession = Depends(get_session),
+    camera_service: CameraService = Depends(get_camera_service),
+    recognition_service: PersonRecognitionService = Depends(get_person_recognition_service),
+):
+    camera_ids = await get_visible_camera_ids(user, session, camera_service)
+    return recognition_service.detections_for(camera_ids)
 
 @router.get("/alarm-preferences", response_model=dict[str, bool])
 async def list_alarm_preferences(
