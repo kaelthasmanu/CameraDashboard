@@ -66,6 +66,9 @@ class CreateUserRequest(BaseModel):
             raise ValueError("Los nombres de cámara no pueden estar vacíos")
         return list(dict.fromkeys(normalized))
 
+class UpdateAlarmPreferenceRequest(BaseModel):
+    enabled: bool
+
 
 class UpdateUserCameraAccessRequest(BaseModel):
     camera_names: list[str] = Field(default_factory=list)

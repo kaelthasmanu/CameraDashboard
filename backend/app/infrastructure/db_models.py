@@ -55,6 +55,17 @@ class UserCameraAccessModel(Base):
     )
     camera_name: Mapped[str] = mapped_column(String(120), primary_key=True)
 
+class UserCameraAlarmPreferenceModel(Base):
+    """Per-user alarm setting for a stable MediaMTX camera path."""
+
+    __tablename__ = "user_camera_alarm_preferences"
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    camera_name: Mapped[str] = mapped_column(String(120), primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
 
 class UserActivityEventModel(Base):
     """An append-only audit record for meaningful actions in the dashboard."""
