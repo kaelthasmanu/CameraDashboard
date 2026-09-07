@@ -5,7 +5,7 @@ from alembic import command
 from alembic.config import Config
 from fastapi import Depends, FastAPI
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
-from sqlalchemy import create_engine, inspect, select
+from sqlalchemy import select
 from .presentation.api import router
 from .presentation.schemas import HealthResponse
 from .infrastructure.cors import (
@@ -57,15 +57,6 @@ app.include_router(users_router, prefix="/api/v1")
 
 def run_database_migrations() -> None:
     alembic_config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
-    database_url = settings.database_url.replace("+asyncpg", "").replace("+aiosqlite", "")
-    engine = create_engine(database_url)
-    try:
-        existing_tables = set(inspect(engine).get_table_names())
-    finally:
-        engine.dispose()
-
-    if "alembic_version" not in existing_tables and {"cameras", "recordings"}.issubset(existing_tables):
-        command.stamp(alembic_config, "001_initial")
     command.upgrade(alembic_config, "head")
 
 @app.on_event("startup")
