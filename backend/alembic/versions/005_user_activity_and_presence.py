@@ -24,11 +24,12 @@ def upgrade():
         sa.Column("occurred_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        if_not_exists=True,
     )
-    op.create_index("ix_user_activity_events_user_id", "user_activity_events", ["user_id"])
-    op.create_index("ix_user_activity_events_event_type", "user_activity_events", ["event_type"])
-    op.create_index("ix_user_activity_events_camera_name", "user_activity_events", ["camera_name"])
-    op.create_index("ix_user_activity_events_occurred_at", "user_activity_events", ["occurred_at"])
+    op.create_index("ix_user_activity_events_user_id", "user_activity_events", ["user_id"], if_not_exists=True)
+    op.create_index("ix_user_activity_events_event_type", "user_activity_events", ["event_type"], if_not_exists=True)
+    op.create_index("ix_user_activity_events_camera_name", "user_activity_events", ["camera_name"], if_not_exists=True)
+    op.create_index("ix_user_activity_events_occurred_at", "user_activity_events", ["occurred_at"], if_not_exists=True)
 
     op.create_table(
         "user_presence_sessions",
@@ -38,9 +39,10 @@ def upgrade():
         sa.Column("is_visible", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("session_id"),
+        if_not_exists=True,
     )
-    op.create_index("ix_user_presence_sessions_user_id", "user_presence_sessions", ["user_id"])
-    op.create_index("ix_user_presence_sessions_last_seen_at", "user_presence_sessions", ["last_seen_at"])
+    op.create_index("ix_user_presence_sessions_user_id", "user_presence_sessions", ["user_id"], if_not_exists=True)
+    op.create_index("ix_user_presence_sessions_last_seen_at", "user_presence_sessions", ["last_seen_at"], if_not_exists=True)
 
 
 def downgrade():
