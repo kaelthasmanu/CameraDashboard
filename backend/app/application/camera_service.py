@@ -10,3 +10,6 @@ class CameraService:
 
     async def get_camera(self, camera_id: int) -> Camera | None:
         return await self._repository.get(camera_id)
+
+    async def list_detection_sources(self) -> dict[int, str]:
+        return await self._repository.list_detection_sources()

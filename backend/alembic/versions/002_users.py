@@ -14,8 +14,9 @@ def upgrade():
         sa.Column("password_hash", sa.String(255), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("is_admin", sa.Boolean(), nullable=False, server_default=sa.false()),
+        if_not_exists=True,
     )
-    op.create_index("ix_users_username", "users", ["username"], unique=True)
+    op.create_index("ix_users_username", "users", ["username"], unique=True, if_not_exists=True)
 
 def downgrade():
     op.drop_index("ix_users_username", table_name="users")

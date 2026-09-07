@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = False
     admin_username: str = "admin"
     admin_password: str = "change-me-now"
+    person_detection_enabled: bool = True
+    person_detection_model: str = "yolo11m.pt"
+    person_detection_confidence: float = 0.2
+    person_detection_image_size: int = 1280
+    person_detection_augment: bool = True
+    person_detection_max_detections: int = 100
+    person_detection_frame_interval_seconds: float = 0.25
+    person_detection_alert_seconds: int = 2
     model_config = SettingsConfigDict(
         env_file=str(Path(__file__).resolve().parents[3] / ".env"),
         env_file_encoding="utf-8",

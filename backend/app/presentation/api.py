@@ -1,8 +1,10 @@
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException, Request
+import asyncio
+import jwt
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from ..application.camera_service import CameraService
-from .camera_dependencies import get_camera_service
+from .camera_dependencies import get_camera_service, get_person_recognition_service
 from .schemas import CameraResponse
 from ..application.recording_service import RecordingService
 from ..infrastructure.recording_repository import (
@@ -19,8 +21,12 @@ from ..infrastructure.security import (
 )
 from ..infrastructure.db_models import UserModel
 from ..infrastructure.db_models import UserCameraAlarmPreferenceModel
-from .schemas import CameraResponse, UpdateAlarmPreferenceRequest
+from ..infrastructure.database import SessionLocal
+from .schemas import CameraResponse, PersonDetectionResponse, UpdateAlarmPreferenceRequest
+from ..infrastructure.person_detection import PersonRecognitionService
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from ..infrastructure.settings import settings
 
 router = APIRouter()
 recording_repository = FtpRecordingRepository()
@@ -54,6 +60,63 @@ async def get_authorized_camera(
     if camera_names is not None and camera.name not in camera_names:
         raise HTTPException(status_code=404, detail="Camera not found")
     return camera
+
+
+@router.get("/person-detections", response_model=list[PersonDetectionResponse])
+async def list_person_detections(
+    user: UserModel = Depends(require_live_access),
+    session: AsyncSession = Depends(get_session),
+    camera_service: CameraService = Depends(get_camera_service),
+    recognition_service: PersonRecognitionService = Depends(get_person_recognition_service),
+):
+    camera_ids = await get_visible_camera_ids(user, session, camera_service)
+    return recognition_service.detections_for(camera_ids)
+
+
+@router.websocket("/person-detections/ws")
+async def person_detections_websocket(websocket: WebSocket):
+    token = websocket.query_params.get("token") or websocket.cookies.get("access_token")
+    if not token:
+        await websocket.close(code=4401)
+        return
+    try:
+        user_id = int(jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]).get("sub", ""))
+    except (jwt.InvalidTokenError, ValueError, TypeError):
+        await websocket.close(code=4401)
+        return
+
+    await websocket.accept()
+    recognition_service = get_person_recognition_service()
+    queue: asyncio.Queue[dict[str, object]] = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+    async with SessionLocal() as session:
+        user = await session.scalar(select(UserModel).where(UserModel.id == user_id, UserModel.is_active.is_(True)))
+        if user is None:
+            await websocket.close(code=4401)
+            return
+        camera_ids = await get_visible_camera_ids(user, session, get_camera_service())
+
+        def publish(event: dict[str, object]) -> None:
+            event_camera_id = event.get("camera_id")
+            if camera_ids is not None and event_camera_id not in camera_ids:
+                return
+            loop.call_soon_threadsafe(queue.put_nowait, event)
+
+        recognition_service.subscribe(publish)
+        try:
+            for detection in recognition_service.detections_for(camera_ids):
+                await websocket.send_json({
+                    "type": "person_detection",
+                    "camera_id": detection.camera_id,
+                    "person_count": detection.person_count,
+                    "detected_at": detection.detected_at.isoformat(),
+                })
+            while True:
+                await websocket.send_json(await queue.get())
+        except (WebSocketDisconnect, RuntimeError):
+            pass
+        finally:
+            recognition_service.unsubscribe(publish)
 
 @router.get("/alarm-preferences", response_model=dict[str, bool])
 async def list_alarm_preferences(

@@ -5,6 +5,7 @@ from alembic import command
 from alembic.config import Config
 from fastapi import Depends, FastAPI
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from sqlalchemy import select
 from .presentation.api import router
 from .presentation.schemas import HealthResponse
 from .infrastructure.cors import (
@@ -20,8 +21,8 @@ from .infrastructure.security import hash_password, require_admin
 from .presentation.auth import router as auth_router
 from .presentation.activity import router as activity_router
 from .presentation.users import router as users_router
+from .presentation.camera_dependencies import person_recognition_service
 from .domain.user import UserRole
-from sqlalchemy import select
 
 # Documentation is mounted explicitly below so its schema cannot reveal the
 # API surface to unauthenticated visitors.
@@ -71,6 +72,12 @@ async def initialize_database():
                 role=UserRole.ADMIN.value,
             ))
             await session.commit()
+    await person_recognition_service.start()
+
+
+@app.on_event("shutdown")
+async def stop_person_recognition():
+    await person_recognition_service.stop()
 
 @app.get("/health", response_model=HealthResponse)
 async def health():
