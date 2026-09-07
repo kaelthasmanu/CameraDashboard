@@ -9,6 +9,12 @@ depends_on = None
 
 
 def upgrade():
+    existing_columns = {
+        column["name"] for column in sa.inspect(op.get_bind()).get_columns("users")
+    }
+    if "role" in existing_columns:
+        return
+
     op.add_column(
         "users",
         sa.Column("role", sa.String(length=20), nullable=False, server_default="guardia"),
