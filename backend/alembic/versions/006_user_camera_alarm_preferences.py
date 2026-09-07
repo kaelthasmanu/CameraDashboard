@@ -18,6 +18,7 @@ def upgrade():
         sa.Column("enabled", sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("user_id", "camera_name"),
+        if_not_exists=True,
     )
 
 
