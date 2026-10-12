@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     ftp_recording_duration_seconds: int = 1800
     ftp_camera_prefixes: str = ""
     mediamtx_config_path: str = "/app/mediamtx.yml"
+    mediamtx_api_url: str = "http://localhost:9997"
+    mediamtx_api_username: str = ""
+    mediamtx_api_password: str = ""
+    mediamtx_api_timeout_seconds: float = 2.0
     mediamtx_webrtc_public_url: str = "http://localhost:8889"
     frontend_api_url: str = "http://localhost:8000/api/v1"
     jwt_secret_key: str = "change-this-secret-in-production"
