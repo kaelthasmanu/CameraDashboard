@@ -11,7 +11,13 @@ Esta guia es una alternativa al arranque completo con `docker compose up --build
 
 ## 1. Configurar variables locales
 
-Desde la raiz del repositorio, configura el `.env` local. El backend lee este archivo y Docker Compose lo usa para interpolar la configuracion de PostgreSQL. El `.env` preparado para el stack Compose completo usa PostgreSQL; para esta guia manual, establece `DATABASE_URL` en SQLite como se muestra abajo.
+Desde la raiz del repositorio, crea el `.env` si aun no existe. No sobrescribas un `.env` que ya tenga credenciales reales:
+
+```bash
+[ -f .env ] || cp .env.example .env
+```
+
+El backend lee este archivo y Docker Compose lo usa para interpolar PostgreSQL. La plantilla usa nombres DNS internos para el stack completo; para esta guia manual, cambia `DATABASE_URL` a SQLite y `MEDIAMTX_API_URL` a `http://127.0.0.1:9997` como se muestra abajo. Configura el `MEDIAMTX_API_PASSWORD` para que coincida con el usuario `dashboard-api` de `mediamtx.yml`.
 
 ```env
 DATABASE_URL=sqlite+aiosqlite:///./camera_dashboard.db

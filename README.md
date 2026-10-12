@@ -4,6 +4,15 @@ Multi-camera dashboard with React + TypeScript on the frontend and FastAPI on th
 
 ## Quick start
 
+Create local configuration files only when they do not already exist, then
+replace the placeholders and keep the MediaMTX API password identical in both
+files:
+
+```bash
+[ -f .env ] || cp .env.example .env
+[ -f mediamtx.yml ] || cp mediamtx.example.yml mediamtx.yml
+```
+
 ```bash
 docker compose up --build
 ```
