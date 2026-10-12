@@ -8,9 +8,16 @@ Multi-camera dashboard with React + TypeScript on the frontend and FastAPI on th
 docker compose up --build
 ```
 
-All Compose services use `restart: unless-stopped`: Docker restarts them after
-a process failure and when Docker/the server comes back up. A service that an
-operator stops explicitly remains stopped until it is started again.
+This starts the frontend, FastAPI backend, PostgreSQL, and MediaMTX. For the
+manual local-development option with SQLite, use the highlighted guide below.
+
+> **Develop locally without containerizing the app**
+>
+> Run FastAPI/Alembic and React/Vite directly from their own folders, with
+> Compose providing MediaMTX and an optional PostgreSQL service. SQLite works
+> without a database container.
+>
+> **[Open the local development setup guide](docs/development-setup.md)**
 
 - Frontend: http://localhost:5173
 - API: http://localhost:8000/docs
@@ -124,7 +131,7 @@ Run persistence migrations with `cd backend && alembic upgrade head`; with Docke
 
 ### SQLite in Docker
 
-When `DATABASE_URL` uses SQLite, the backend runs from `/data` and Docker stores that directory in the named `sqlite_data` volume. Therefore the default relative SQLite URL (`sqlite+aiosqlite:///./camera_dashboard.db`) persists across `docker compose down` and container rebuilds. If you configure an absolute SQLite URL, point it inside `/data`, for example `sqlite+aiosqlite:////data/camera_dashboard.db`. Do not use `docker compose down -v` when you need to retain database data, because that command intentionally removes named volumes.
+The full Compose stack uses PostgreSQL by default. If you change `DATABASE_URL` to SQLite, the backend runs from `/data` and Docker stores that directory in the named `sqlite_data` volume. The relative URL `sqlite+aiosqlite:///./camera_dashboard.db` therefore persists across container rebuilds. Do not use `docker compose down -v` when you need to retain database data, because that command intentionally removes named volumes.
 
 ## Roles and camera access
 
