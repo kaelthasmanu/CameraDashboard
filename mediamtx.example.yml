@@ -1,6 +1,7 @@
 # Copy this file to mediamtx.yml and replace the RTSP placeholders. Do not
 # commit the real file because it can contain camera credentials.
 logLevel: info
+api: yes
 
 # WHEP/WebRTC signalling is served on 8889; media uses these fixed ICE ports.
 webrtc: yes
@@ -28,3 +29,5 @@ paths:
     # H.264 substream: used by the multi-camera dashboard grid. It stays warm
     # and reconnects in MediaMTX, preventing six simultaneous cold starts.
     source: rtsp://USER:PASSWORD@CAMERA_HOST:554/h264Preview_01_sub
+    # cameras with RTMP
+    all_others:
