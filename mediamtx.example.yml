@@ -1,6 +1,25 @@
 # Copy this file to mediamtx.yml and replace the RTSP placeholders. Do not
 # commit the real file because it can contain camera credentials.
 logLevel: info
+api: yes
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+        path: ""
+      - action: read
+        path: ""
+      - action: playback
+        path: ""
+  - user: dashboard-api
+    # Match this value to MEDIAMTX_API_PASSWORD in the backend environment.
+    pass: REPLACE_WITH_MEDIAMTX_API_PASSWORD
+    ips: []
+    permissions:
+      - action: api
+        path: ""
 
 # WHEP/WebRTC signalling is served on 8889; media uses these fixed ICE ports.
 webrtc: yes
@@ -28,3 +47,6 @@ paths:
     # H.264 substream: used by the multi-camera dashboard grid. It stays warm
     # and reconnects in MediaMTX, preventing six simultaneous cold starts.
     source: rtsp://USER:PASSWORD@CAMERA_HOST:554/h264Preview_01_sub
+  # Accept RTMP/RTMPS publishers with dynamic path names.
+  all_others:
+    source: publisher
